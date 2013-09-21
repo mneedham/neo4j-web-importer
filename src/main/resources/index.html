@@ -1,0 +1,23 @@
+<html>
+
+<head>
+	<title>Import all the things</title>
+</head>
+	<body>
+		<form action="http://localhost:7474/tools/import" method="POST" enctype="multipart/form-data">
+			
+			<p>
+				<label for="nodes">Nodes:</label>
+				<input type="file" name="nodes" id="nodes">
+			</p>
+
+			<p>
+				<label for="relationships">Relationships:</label>
+				<input type="file" name="relationships" id="relationships">
+			</p>
+
+			<input type="submit" name="submit" value="Submit">
+
+		</form>
+	</body>
+</html>
