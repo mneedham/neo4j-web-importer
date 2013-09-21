@@ -2,11 +2,8 @@ package org.neo4j.dataimport;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.Consumes;
@@ -48,8 +45,13 @@ public class ImportResource
         StringBuilder stringBuilder = null;
         try
         {
-            BufferedReader reader = new BufferedReader( new FileReader(
-                    "/Users/markneedham/projects/neo4j-web-importer/src/main/resources/index.html" ) );
+            String indexPage = "/Users/markhneedham/code/neo4j-web-importer/src/main/resources/index.html";
+
+//            indexPage = ImportResource.class.getResource("./index.html").getPath();
+
+            System.out.println("indexPage = " + indexPage);
+
+            BufferedReader reader = new BufferedReader( new FileReader(indexPage) );
             stringBuilder = new StringBuilder();
             String ls = System.getProperty( "line.separator" );
 
@@ -80,11 +82,13 @@ public class ImportResource
         Neo4jServer neo4jServer = new Neo4jServer( database, 200 );
 
         String nodesFileLocation = uploadFileLocation( nodesFilesDetails );
-        writeToFile( nodesInputStream, nodesFileLocation );
+
+        FileHelper.writeToFile(nodesInputStream, nodesFileLocation);
 
         String relationshipsFileLocation = uploadFileLocation( relationshipsFilesDetails );
-        writeToFile( relationshipsInputStream, relationshipsFileLocation );
+        FileHelper.writeToFile(relationshipsInputStream, relationshipsFileLocation);
 
+        // look at whether making this return a sequence deals with it lazily
         List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ) ).extractNodes();
 
         Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
@@ -102,48 +106,6 @@ public class ImportResource
     {
         String fileName = fileDetail.getFileName() + "-" + System.currentTimeMillis();
         return new File( ((GraphDatabaseAPI) database).getStoreDir() + "/../import" ).toPath() + "/" + fileName;
-    }
-
-    private void writeToFile( InputStream uploadedInputStream,
-                              String uploadedFileLocation )
-    {
-        OutputStream out = null;
-        File f = new File( uploadedFileLocation );
-        try
-        {
-
-            out = new FileOutputStream( f );
-            int read = 0;
-            byte[] bytes = new byte[1024];
-
-            out = new FileOutputStream( new File( uploadedFileLocation ) );
-            while ( (read = uploadedInputStream.read( bytes )) != -1 )
-            {
-                out.write( bytes, 0, read );
-            }
-            out.flush();
-        }
-        catch ( IOException e )
-        {
-
-            e.printStackTrace();
-        }
-        finally
-        {
-            if ( out != null )
-            {
-                try
-                {
-                    uploadedInputStream.close();
-                    out.close();
-                }
-                catch ( IOException e )
-                {
-                    e.printStackTrace();
-                }
-            }
-        }
-
     }
 
 

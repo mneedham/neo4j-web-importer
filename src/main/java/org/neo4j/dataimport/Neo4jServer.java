@@ -81,7 +81,6 @@ public class Neo4jServer
 
             executionEngine.execute( query, parameters );
         }
-
     }
 
     private String createQuery( Sequence<Map<String, Object>> relationships, Sequence<Pair<Number, Number>> nodePairs )
