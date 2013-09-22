@@ -1,0 +1,1 @@
+curl --form nodes=@nodes.csv --form relationships=@relationships.csv --form press=submit http://localhost:7474/tools/import
