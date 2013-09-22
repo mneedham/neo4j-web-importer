@@ -50,6 +50,7 @@ public class Neo4jServer
 
     public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
     {
+        // this will blow up with big rel sizes
         int numberOfRelationshipsToImport = relationships.size();
 
         for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {

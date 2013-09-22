@@ -79,7 +79,7 @@ public class ImportResource
             @FormDataParam("relationships") InputStream relationshipsInputStream,
             @FormDataParam("relationships") FormDataContentDisposition relationshipsFilesDetails )
     {
-        Neo4jServer neo4jServer = new Neo4jServer( database, 200 );
+        Neo4jServer neo4jServer = new Neo4jServer( database, 10000 );
 
         String nodesFileLocation = uploadFileLocation( nodesFilesDetails );
 
