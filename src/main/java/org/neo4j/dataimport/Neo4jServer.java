@@ -18,9 +18,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 
 import static com.googlecode.totallylazy.numbers.Numbers.range;
 
@@ -72,14 +70,31 @@ public class Neo4jServer
 
         for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {
             Sequence<Map<String, Object>> batchRels = relationships.drop( i ).take( batchSize );
-            int numberOfNodes = batchSize * 2;
-            Sequence<Pair<Number, Number>> nodePairs = range( 1, numberOfNodes - 1, 2 ).zip( range( 2, numberOfNodes, 2 ) );
+//            int numberOfNodes = batchSize * 2;
+//            Sequence<Pair<Number, Number>> nodePairs = range( 1, numberOfNodes - 1, 2 ).zip( range( 2, numberOfNodes, 2 ) );
 
-            String query = createQuery( batchRels, nodePairs );
-            Map<String, Object> parameters = createParametersFrom( nodeParameterMappings( nodePairs.zip( batchRels ),
-                    nodeIdMappings ) );
+            Transaction tx = db.beginTx();
 
-            executionEngine.execute( query, parameters );
+            for (Map<String, Object> properties : batchRels) {
+                Node sourceNode = db.getNodeById(nodeIdMappings.get(properties.get("from").toString()));
+                Node destinationNode = db.getNodeById(nodeIdMappings.get(properties.get("to").toString()));
+
+                Relationship relationship = sourceNode.createRelationshipTo(destinationNode, DynamicRelationshipType.withName(properties.get("type").toString()));
+                for (Map.Entry<String, Object> property : properties.entrySet()) {
+                    relationship.setProperty(property.getKey(), property.getValue());
+                }
+            }
+
+            tx.success();
+            tx.finish();
+
+//            String query = "START ";
+//            query += StringUtils.join( nodePairs.zip( relationships ).map( nodeLookup() ).iterator(), ", " );
+//            query += StringUtils.join( relationships.zip( nodePairs ).map( createRelationship() ).iterator(), " " );
+//
+//            Map<String, Object> parameters = createParametersFrom( nodeParameterMappings( nodePairs.zip( batchRels ), nodeIdMappings ) );
+//
+//            executionEngine.execute( query, parameters );
         }
     }
 
