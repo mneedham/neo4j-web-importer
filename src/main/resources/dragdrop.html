@@ -1,0 +1,78 @@
+<html>
+
+<head>
+	<title>Import all the things</title>
+	<script src="dropzone.js"></script>
+	// <script src="jquery-1.10.2.min.js"></script>
+
+	<script type="text/javascript">
+	Dropzone.autoDiscover = false;
+
+	$(document).ready(function() {
+		$("#correlationId").val(new Date().getTime());
+
+		Dropzone.options.nodes = {
+		  paramName: "nodes", // The name that will be used to transfer the file		  
+		  maxFiles: 1,
+		  dictDefaultMessage: "Drop nodes file here",
+		  accept: function(file, done) {
+		    done();
+		  }
+		};
+
+		Dropzone.options.relationships = {
+		  paramName: "relationships", // The name that will be used to transfer the file		  
+		  maxFiles: 1,
+		  dictDefaultMessage: "Drop relationships file here",
+		  accept: function(file, done) {
+		    done();
+		  }
+		};		
+
+		var nodes = new Dropzone("#nodes", { 
+			url: "http://localhost:7474/tools/import/nodes?correlationId=" + $("#correlationId").val(), 
+			addRemoveLinks: true			
+		});
+
+		var rels = new Dropzone("#relationships", { 
+			url: "http://localhost:7474/tools/import/relationships?correlationId=" + $("#correlationId").val(), 
+			addRemoveLinks: true			
+		});
+
+		$("#import-all-the-things").submit(function(e) {
+			nodes.processQueue();
+			rels.processQueue();
+			e.preventDefault();
+		});
+	});
+	</script>
+</head>
+	<body>
+		<form id="import-all-the-things" class="dropzone" action="http://localhost:7474/tools/import" method="POST" enctype="multipart/form-data">
+			
+			<input type="hidden" id="correlationId" />
+
+			<p>
+			<div id="nodes" class="dropzone" style="border-style:dashed; border-width:2px; padding: 25px">
+				<div class="fallback">
+					<label for="nodes">Nodes:</label>
+					<input type="file" name="nodes" id="nodes">
+				</div>
+			</div>	
+			</p>		
+
+			<p>
+
+			<div id="relationships" class="dropzone"  style="border-bottom: 5px;border-style:dashed; border-width:2px; padding: 25px">
+				<div class="fallback">
+					<label for="relationships">Relationships:</label>
+					<input type="file" name="relationships" id="relationships">
+				</div>
+			</div>
+			</p>
+		
+			<input id="process-import" type="submit" name="submit" value="Submit">
+		</form>
+
+	</body>
+</html>
