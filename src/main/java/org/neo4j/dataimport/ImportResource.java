@@ -11,6 +11,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -27,47 +28,65 @@ import static com.googlecode.totallylazy.Sequences.sequence;
 public class ImportResource
 {
     private final GraphDatabaseService database;
+    private final Neo4jServer neo4jServer;
 
     public ImportResource( @Context GraphDatabaseService database )
     {
         this.database = database;
+        this.neo4jServer = new Neo4jServer( database, 10000 );
     }
 
-    @GET
-    @Produces(MediaType.TEXT_HTML)
-    public Response index()
-    {
-        return Response.ok().entity( renderView() ).build();
+    @POST
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/nodes")
+    public Response uploadNodesFile(@QueryParam(value = "correlationId") String correlationId,
+                                    @FormDataParam("nodes") InputStream inputStream,
+                                    @FormDataParam("nodes") FormDataContentDisposition fileDetails) {
+        return uploadFile( correlationId, inputStream, fileDetails );
     }
 
-    private String renderView()
+    @POST
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/relationships")
+    public Response uploadRelationshipsFile(@QueryParam(value = "correlationId") String correlationId,
+                                    @FormDataParam("relationships") InputStream inputStream,
+                                    @FormDataParam("relationships") FormDataContentDisposition fileDetails) {
+        return uploadFile( correlationId, inputStream, fileDetails );
+    }
+
+    private Response uploadFile( String correlationId, InputStream inputStream, FormDataContentDisposition fileDetails )
     {
-        StringBuilder stringBuilder = null;
-        try
-        {
-            String indexPage = "/Users/markhneedham/code/neo4j-web-importer/src/main/resources/index.html";
+        File importDirectory = createImportDirectory( correlationId );
+        String fileLocation = uploadFileLocation( fileDetails, importDirectory );
+        FileHelper.writeToFile( inputStream, fileLocation );
 
-//            indexPage = ImportResource.class.getResource("./index.html").getPath();
+        String output = "File uploaded to : " + fileLocation;
+        return Response.status( 200 ).entity( output ).build();
+    }
 
-            System.out.println("indexPage = " + indexPage);
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/incremental")
+    public Response process(@QueryParam(value = "correlationId") String correlationId,
+                            @QueryParam(value = "lastNodesFile") String nodesFile,
+                            @QueryParam(value = "lastRelationshipsFile") String relationshipsFile) {
+        File importDirectory = createImportDirectory( correlationId );
+        String nodesFileLocation = importDirectory.getPath() + "/" + nodesFile;
+        String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipsFile;
 
-            BufferedReader reader = new BufferedReader( new FileReader(indexPage) );
-            stringBuilder = new StringBuilder();
-            String ls = System.getProperty( "line.separator" );
+        // look at whether making this return a sequence deals with it lazily
+        List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ) ).extractNodes();
 
-            String line = null;
-            while ( (line = reader.readLine()) != null )
-            {
-                stringBuilder.append( line );
-                stringBuilder.append( ls );
-            }
-        }
-        catch ( Exception ignored )
-        {
+        Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
 
-        }
+        List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ) ).relationships();
 
-        return stringBuilder.toString();
+        neo4jServer.importRelationships( sequence( relationships ), nodeMappings );
+
+        String output = "File uploaded to : " + nodesFileLocation;
+        return Response.status( 200 ).entity( output ).build();
     }
 
     @POST
@@ -79,13 +98,12 @@ public class ImportResource
             @FormDataParam("relationships") InputStream relationshipsInputStream,
             @FormDataParam("relationships") FormDataContentDisposition relationshipsFilesDetails )
     {
-        Neo4jServer neo4jServer = new Neo4jServer( database, 10000 );
+        File importDirectory = createImportDirectory( String.valueOf(System.currentTimeMillis() ));
 
-        String nodesFileLocation = uploadFileLocation( nodesFilesDetails );
-
+        String nodesFileLocation = uploadFileLocation( nodesFilesDetails, importDirectory );
         FileHelper.writeToFile(nodesInputStream, nodesFileLocation);
 
-        String relationshipsFileLocation = uploadFileLocation( relationshipsFilesDetails );
+        String relationshipsFileLocation = uploadFileLocation( relationshipsFilesDetails, importDirectory );
         FileHelper.writeToFile(relationshipsInputStream, relationshipsFileLocation);
 
         // look at whether making this return a sequence deals with it lazily
@@ -102,10 +120,16 @@ public class ImportResource
         return Response.status( 200 ).entity( output ).build();
     }
 
-    private String uploadFileLocation( FormDataContentDisposition fileDetail )
+    private File createImportDirectory( String folderExtension )
     {
-        String fileName = fileDetail.getFileName() + "-" + System.currentTimeMillis();
-        return new File( ((GraphDatabaseAPI) database).getStoreDir() + "/../import" ).toPath() + "/" + fileName;
+        File importDirectory = new File( ((GraphDatabaseAPI) database).getStoreDir() + "/../import/" + folderExtension );
+        importDirectory.mkdir();
+        return importDirectory;
+    }
+
+    private String uploadFileLocation( FormDataContentDisposition fileDetail, File importDirectory )
+    {
+        return importDirectory.toPath() + "/" + fileDetail.getFileName();
     }
 
 
