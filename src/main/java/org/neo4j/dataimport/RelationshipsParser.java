@@ -29,7 +29,7 @@ public class RelationshipsParser
 
             String[] header = reader.readNext();
             if (header == null || !asList(header).contains("from") || !asList(header).contains("to") || !asList(header).contains("type") ) {
-                throw new RuntimeException("No header line found or 'from', 'to', 'type' fields missing in nodes.csv");
+                throw new RuntimeException("No header line found or 'from', 'to', 'type' fields missing in relationships file");
             }
 
             String[] nextLine;

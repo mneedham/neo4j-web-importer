@@ -28,7 +28,7 @@ public class NodesParser
 
             String[] header = reader.readNext();
             if (header == null || !Arrays.asList( header ).contains("id")) {
-                throw new RuntimeException("No header line found or 'id' field missing in nodes.csv");
+                throw new RuntimeException("No header line found or 'id' field missing in nodes file");
             }
 
             String[] nextLine;
