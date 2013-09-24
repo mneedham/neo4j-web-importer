@@ -64,14 +64,8 @@ public class ImportResource
         String fileLocation = uploadFile( correlationId, inputStream, fileDetails );
 
         String header = new NodesParser( new File( fileLocation ) ).header();
-
         Pair<FileType, Integer> fileType = FileInvestigator.mostLikelyFileType( header );
-
-        ObjectNode fileUploadResponse = JsonNodeFactory.instance.objectNode();
-        fileUploadResponse.put("path", fileLocation);
-        fileUploadResponse.put("fileType", fileType.first().friendlyName() );
-        fileUploadResponse.put("enumFileType", fileType.first().name() );
-        fileUploadResponse.put("header", header);
+        ObjectNode fileUploadResponse = buildResponse( fileLocation, header, fileType );
 
         String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
         return Response.status( 200 ).entity( response ).type( MediaType.APPLICATION_JSON ).build();
@@ -89,17 +83,21 @@ public class ImportResource
         String fileLocation = uploadFile( correlationId, inputStream, fileDetails );
 
         String header = new RelationshipsParser( new File( fileLocation ) ).header();
-
         Pair<FileType, Integer> fileType = FileInvestigator.mostLikelyFileType( header );
-
-        ObjectNode fileUploadResponse = JsonNodeFactory.instance.objectNode();
-        fileUploadResponse.put("path", fileLocation);
-        fileUploadResponse.put("fileType", fileType.first().friendlyName() );
-        fileUploadResponse.put("enumFileType", fileType.first().name() );
-        fileUploadResponse.put("header", header);
+        ObjectNode fileUploadResponse = buildResponse( fileLocation, header, fileType );
 
         String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
         return Response.status( 200 ).entity( response ).type( MediaType.APPLICATION_JSON ).build();
+    }
+
+    private ObjectNode buildResponse( String fileLocation, String header, Pair<FileType, Integer> fileType )
+    {
+        ObjectNode response = JsonNodeFactory.instance.objectNode();
+        response.put( "path", fileLocation );
+        response.put( "fileType", fileType.first().friendlyName() );
+        response.put( "enumFileType", fileType.first().name() );
+        response.put( "header", header );
+        return response;
     }
 
     private String uploadFile( String correlationId, InputStream inputStream, FormDataContentDisposition fileDetails )
