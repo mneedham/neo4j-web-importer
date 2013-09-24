@@ -27,6 +27,7 @@ import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
@@ -131,7 +132,10 @@ public class ImportResource
                             @QueryParam(value = "lastNodesFile") String nodesFile,
                             @QueryParam(value = "lastNodesFileType") String nodesFileTypeAsString,
                             @QueryParam(value = "lastRelationshipsFile") String relationshipsFile,
-                            @QueryParam(value = "lastRelationshipsFileType") String relationshipsFileTypeAsString) {
+                            @QueryParam(value = "lastRelationshipsFileType") String relationshipsFileTypeAsString,
+                            @QueryParam(value = "files") ArrayNode files) {
+
+        System.out.println( "files = " + files );
 
         FileType nodesFileType = FileType.valueOf( nodesFileTypeAsString );
         FileType relationshipsFileType = FileType.valueOf( relationshipsFileTypeAsString );
