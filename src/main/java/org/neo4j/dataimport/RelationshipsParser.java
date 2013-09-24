@@ -1,5 +1,6 @@
 package org.neo4j.dataimport;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -15,17 +16,24 @@ import static java.util.Arrays.asList;
 
 public class RelationshipsParser
 {
-    private File relationshipsPath;
+    private final File relationshipsPath;
+    private final FileType fileType;
 
     public RelationshipsParser( File relationshipsPath ) {
-        this.relationshipsPath = relationshipsPath;
+        this(relationshipsPath, FileType.RELATIONSHIPS_TAB_DELIMITED_CSV);
+    }
+
+    public RelationshipsParser( File path, FileType fileType )
+    {
+        this.relationshipsPath = path;
+        this.fileType = fileType;
     }
 
     public List<Map<String, Object>> relationships() {
         List<Map<String, Object>> relationships = new ArrayList<Map<String, Object>>();
 
         try {
-            CSVReader reader = new CSVReader(new FileReader(relationshipsPath), '\t');
+            CSVReader reader = new CSVReader(new FileReader(relationshipsPath), fileType.separator());
 
             String[] header = reader.readNext();
             if (header == null || !asList(header).contains("from") || !asList(header).contains("to") || !asList(header).contains("type") ) {
@@ -47,5 +55,10 @@ public class RelationshipsParser
         }
 
         return relationships;
+    }
+
+    public String header() throws IOException
+    {
+        return new BufferedReader(new FileReader(relationshipsPath)).readLine();
     }
 }

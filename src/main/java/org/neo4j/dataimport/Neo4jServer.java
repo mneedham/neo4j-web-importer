@@ -1,17 +1,17 @@
 package org.neo4j.dataimport;
 
 
-import com.googlecode.totallylazy.Callable1;
-import com.googlecode.totallylazy.Pair;
-import com.googlecode.totallylazy.Sequence;
-import org.apache.commons.lang.StringUtils;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.graphdb.*;
-
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.googlecode.totallylazy.Sequence;
+
+import org.neo4j.graphdb.DynamicRelationshipType;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 
 public class Neo4jServer
 {

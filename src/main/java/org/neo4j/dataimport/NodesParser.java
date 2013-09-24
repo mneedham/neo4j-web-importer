@@ -1,5 +1,6 @@
 package org.neo4j.dataimport;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -14,17 +15,24 @@ import au.com.bytecode.opencsv.CSVReader;
 
 public class NodesParser
 {
-    private final File nodesPath;
+    private final File path;
+    private final FileType fileType;
 
-    public NodesParser( File nodesPath ) {
-        this.nodesPath = nodesPath;
+    public NodesParser( File path ) {
+        this(path, FileType.NODES_TAB_DELIMITED_CSV);
+    }
+
+    public NodesParser( File path, FileType fileType )
+    {
+        this.path = path;
+        this.fileType = fileType;
     }
 
     public List<Map<String, Object>> extractNodes() {
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>(  );
 
         try {
-            CSVReader reader = new CSVReader(new FileReader(nodesPath), '\t');
+            CSVReader reader = new CSVReader(new FileReader( path ), fileType.separator());
 
             String[] header = reader.readNext();
             if (header == null || !Arrays.asList( header ).contains("id")) {
@@ -46,5 +54,10 @@ public class NodesParser
         }
 
         return nodes;
+    }
+
+    public String header() throws IOException
+    {
+        return new BufferedReader(new FileReader( path )).readLine();
     }
 }

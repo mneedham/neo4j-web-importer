@@ -1,8 +1,6 @@
 package org.neo4j.dataimport;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -24,9 +22,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.googlecode.totallylazy.Pair;
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
-import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.JsonNodeFactory;
@@ -40,6 +38,8 @@ import static com.googlecode.totallylazy.Sequences.sequence;
 @Path("/import")
 public class ImportResource
 {
+
+
     private final GraphDatabaseService database;
     private final Neo4jServer neo4jServer;
     private final Executor executor = Executors.newSingleThreadExecutor();
@@ -57,8 +57,24 @@ public class ImportResource
     @Path("/nodes")
     public Response uploadNodesFile(@QueryParam(value = "correlationId") String correlationId,
                                     @FormDataParam("nodes") InputStream inputStream,
-                                    @FormDataParam("nodes") FormDataContentDisposition fileDetails) {
-        return uploadFile( correlationId, inputStream, fileDetails );
+                                    @FormDataParam("nodes") FormDataContentDisposition fileDetails) throws IOException
+    {
+
+
+        String fileLocation = uploadFile( correlationId, inputStream, fileDetails );
+
+        String header = new NodesParser( new File( fileLocation ) ).header();
+
+        Pair<FileType, Integer> fileType = FileInvestigator.mostLikelyFileType( header );
+
+        ObjectNode fileUploadResponse = JsonNodeFactory.instance.objectNode();
+        fileUploadResponse.put("path", fileLocation);
+        fileUploadResponse.put("fileType", fileType.first().friendlyName() );
+        fileUploadResponse.put("enumFileType", fileType.first().name() );
+        fileUploadResponse.put("header", header);
+
+        String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
+        return Response.status( 200 ).entity( response ).type( MediaType.APPLICATION_JSON ).build();
     }
 
     @POST
@@ -67,18 +83,33 @@ public class ImportResource
     @Path("/relationships")
     public Response uploadRelationshipsFile(@QueryParam(value = "correlationId") String correlationId,
                                     @FormDataParam("relationships") InputStream inputStream,
-                                    @FormDataParam("relationships") FormDataContentDisposition fileDetails) {
-        return uploadFile( correlationId, inputStream, fileDetails );
+                                    @FormDataParam("relationships") FormDataContentDisposition fileDetails) throws
+            IOException
+    {
+        String fileLocation = uploadFile( correlationId, inputStream, fileDetails );
+
+        String header = new RelationshipsParser( new File( fileLocation ) ).header();
+
+        Pair<FileType, Integer> fileType = FileInvestigator.mostLikelyFileType( header );
+
+        ObjectNode fileUploadResponse = JsonNodeFactory.instance.objectNode();
+        fileUploadResponse.put("path", fileLocation);
+        fileUploadResponse.put("fileType", fileType.first().friendlyName() );
+        fileUploadResponse.put("enumFileType", fileType.first().name() );
+        fileUploadResponse.put("header", header);
+
+        String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
+        return Response.status( 200 ).entity( response ).type( MediaType.APPLICATION_JSON ).build();
     }
 
-    private Response uploadFile( String correlationId, InputStream inputStream, FormDataContentDisposition fileDetails )
+    private String uploadFile( String correlationId, InputStream inputStream, FormDataContentDisposition fileDetails )
     {
         File importDirectory = createImportDirectory( correlationId );
         String fileLocation = uploadFileLocation( fileDetails, importDirectory );
         FileHelper.writeToFile( inputStream, fileLocation );
 
-        String output = "File uploaded to : " + fileLocation;
-        return Response.status( 200 ).entity( output ).build();
+        return new File(fileLocation).getAbsolutePath();
+
     }
 
     @GET
@@ -100,12 +131,18 @@ public class ImportResource
     @Path("/incremental")
     public Response process(@QueryParam(value = "correlationId") String correlationId,
                             @QueryParam(value = "lastNodesFile") String nodesFile,
-                            @QueryParam(value = "lastRelationshipsFile") String relationshipsFile) {
+                            @QueryParam(value = "lastNodesFileType") String nodesFileTypeAsString,
+                            @QueryParam(value = "lastRelationshipsFile") String relationshipsFile,
+                            @QueryParam(value = "lastRelationshipsFileType") String relationshipsFileTypeAsString) {
+
+        FileType nodesFileType = FileType.valueOf( nodesFileTypeAsString );
+        FileType relationshipsFileType = FileType.valueOf( relationshipsFileTypeAsString );
+
         File importDirectory = createImportDirectory( correlationId );
         String nodesFileLocation = importDirectory.getPath() + "/" + nodesFile;
         String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipsFile;
 
-        ImportJob job = new ImportJob( nodesFileLocation, relationshipsFileLocation, correlationId );
+        ImportJob job = new ImportJob( nodesFileLocation, relationshipsFileLocation, correlationId, nodesFileType, relationshipsFileType );
         executor.execute( job );
 
         return Response.created( URI.create( "http://localhost:7474/tools/import/status/" + correlationId ) ).build();
@@ -116,14 +153,19 @@ public class ImportResource
         private final String nodesFileLocation;
         private final String relationshipsFileLocation;
         private String correlationId;
+        private FileType nodesFileType;
+        private FileType relationshipsFileType;
         private boolean finished = false;
         private Exception exception;
 
-        ImportJob( String nodesFileLocation, String relationshipsFileLocation, String correlationId )
+        ImportJob( String nodesFileLocation, String relationshipsFileLocation, String correlationId, FileType
+                nodesFileType, FileType relationshipsFileType )
         {
             this.nodesFileLocation = nodesFileLocation;
             this.relationshipsFileLocation = relationshipsFileLocation;
             this.correlationId = correlationId;
+            this.nodesFileType = nodesFileType;
+            this.relationshipsFileType = relationshipsFileType;
             runningJobs.put( correlationId, this );
         }
 
@@ -132,11 +174,11 @@ public class ImportResource
             try
             {
                 // look at whether making this return a sequence deals with it lazily
-                List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ) ).extractNodes();
+                List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ), nodesFileType ).extractNodes();
 
                 Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
 
-                List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ) ).relationships();
+                List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ), relationshipsFileType ).relationships();
 
                 neo4jServer.importRelationships( sequence( relationships ), nodeMappings );
             }
@@ -155,11 +197,11 @@ public class ImportResource
             root.put("correlationId", correlationId);
             root.put("finished", finished);
 
-//            if(exception != null) {
-//                StringWriter writer = new StringWriter();
-//                exception.printStackTrace( new PrintWriter( writer ) );
-//                root.put("exception", writer.toString());
-//            }
+            if(exception != null) {
+                StringWriter writer = new StringWriter();
+                exception.printStackTrace( new PrintWriter( writer ) );
+                root.put("exception", writer.toString());
+            }
 
             return root;
         }
