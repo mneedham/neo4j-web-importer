@@ -131,12 +131,8 @@ public class ImportResource
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/incremental")
-    public Response process(@QueryParam(value = "correlationId") String correlationId,
-                            @QueryParam(value = "lastNodesFile") String nodesFile,
-                            @QueryParam(value = "lastNodesFileType") String nodesFileTypeAsString,
-                            @QueryParam(value = "lastRelationshipsFile") String relationshipsFile,
-                            @QueryParam(value = "lastRelationshipsFileType") String relationshipsFileTypeAsString,
-                            @QueryParam(value = "files") String filesAsString) throws IOException
+    public Response process( @QueryParam(value = "correlationId") String correlationId,
+                             @QueryParam(value = "files") String filesAsString ) throws IOException
     {
 
         Sequence<JsonNode> files = sequence( new ObjectMapper().readTree( filesAsString ) );
