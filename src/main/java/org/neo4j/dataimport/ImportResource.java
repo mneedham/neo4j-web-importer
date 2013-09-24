@@ -4,8 +4,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -18,6 +24,9 @@ import javax.ws.rs.core.Response;
 
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.GraphDatabaseAPI;
@@ -29,6 +38,8 @@ public class ImportResource
 {
     private final GraphDatabaseService database;
     private final Neo4jServer neo4jServer;
+    private final Executor executor = Executors.newSingleThreadExecutor();
+    private Map<String, ImportJob> runningJobs = new HashMap<String, ImportJob>();
 
     public ImportResource( @Context GraphDatabaseService database )
     {
@@ -66,6 +77,15 @@ public class ImportResource
         return Response.status( 200 ).entity( output ).build();
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/status/{correlationId}")
+    public Response howIsMyJobDoing( @QueryParam(value = "correlationId") String correlationId )
+    {
+        JsonNode jobStatus = runningJobs.get( correlationId ).toJson();
+        return Response.status( 200 ).entity( jobStatus ).build();
+    }
+
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/incremental")
@@ -75,18 +95,66 @@ public class ImportResource
         File importDirectory = createImportDirectory( correlationId );
         String nodesFileLocation = importDirectory.getPath() + "/" + nodesFile;
         String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipsFile;
+        ImportJob job = new ImportJob( nodesFileLocation, relationshipsFileLocation, correlationId );
 
-        // look at whether making this return a sequence deals with it lazily
-        List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ) ).extractNodes();
+        executor.execute( job );
 
-        Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
 
-        List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ) ).relationships();
+        return Response.created( URI.create( "/status/" + correlationId ) ).build();
+    }
 
-        neo4jServer.importRelationships( sequence( relationships ), nodeMappings );
+    class ImportJob implements Runnable
+    {
+        private final String nodesFileLocation;
+        private final String relationshipsFileLocation;
+        private String correlationId;
+        private boolean finished = false;
+        private Exception exception;
 
-        String output = "File uploaded to : " + nodesFileLocation;
-        return Response.status( 200 ).entity( output ).build();
+        ImportJob( String nodesFileLocation, String relationshipsFileLocation, String correlationId )
+        {
+            this.nodesFileLocation = nodesFileLocation;
+            this.relationshipsFileLocation = relationshipsFileLocation;
+            this.correlationId = correlationId;
+            runningJobs.put( correlationId, this );
+        }
+
+        public void run()
+        {
+            try
+            {
+                // look at whether making this return a sequence deals with it lazily
+                List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ) ).extractNodes();
+
+                Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
+
+                List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ) ).relationships();
+
+                neo4jServer.importRelationships( sequence( relationships ), nodeMappings );
+            }
+            catch ( Exception e )
+            {
+                this.exception = e;
+            }
+            finally
+            {
+                finished = true;
+            }
+        }
+
+        public JsonNode toJson() {
+            ObjectNode root = JsonNodeFactory.instance.objectNode();
+            root.put("correlationId", correlationId);
+            root.put("finished", finished);
+
+            if(exception != null) {
+                StringWriter writer = new StringWriter();
+                exception.printStackTrace( new PrintWriter( writer ) );
+                root.put("exception", writer.toString());
+            }
+
+            return root;
+        }
     }
 
     @POST
@@ -107,14 +175,7 @@ public class ImportResource
         FileHelper.writeToFile(relationshipsInputStream, relationshipsFileLocation);
 
         // look at whether making this return a sequence deals with it lazily
-        List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ) ).extractNodes();
-
-        Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
-
-        List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ) )
-                .relationships();
-
-        neo4jServer.importRelationships( sequence( relationships ), nodeMappings );
+//        run( nodesFileLocation, relationshipsFileLocation );
 
         String output = "File uploaded to : " + nodesFileLocation;
         return Response.status( 200 ).entity( output ).build();
