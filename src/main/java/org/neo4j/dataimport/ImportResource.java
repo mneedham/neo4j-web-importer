@@ -22,7 +22,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.googlecode.totallylazy.Option;
 import com.googlecode.totallylazy.Pair;
+import com.googlecode.totallylazy.Predicate;
+import com.googlecode.totallylazy.Sequence;
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
 import org.codehaus.jackson.JsonNode;
@@ -44,7 +47,7 @@ public class ImportResource
     private final GraphDatabaseService database;
     private final Neo4jServer neo4jServer;
     private final Executor executor = Executors.newSingleThreadExecutor();
-    private static Map<String, ImportJob> runningJobs = new HashMap<String, ImportJob>();
+    private static Map<String, CSVImportJob> runningJobs = new HashMap<String, CSVImportJob>();
 
     public ImportResource( @Context GraphDatabaseService database )
     {
@@ -133,24 +136,52 @@ public class ImportResource
                             @QueryParam(value = "lastNodesFileType") String nodesFileTypeAsString,
                             @QueryParam(value = "lastRelationshipsFile") String relationshipsFile,
                             @QueryParam(value = "lastRelationshipsFileType") String relationshipsFileTypeAsString,
-                            @QueryParam(value = "files") ArrayNode files) {
+                            @QueryParam(value = "files") String filesAsString) throws IOException
+    {
 
-        System.out.println( "files = " + files );
+        Sequence<JsonNode> files = sequence( new ObjectMapper().readTree( filesAsString ) );
 
-        FileType nodesFileType = FileType.valueOf( nodesFileTypeAsString );
-        FileType relationshipsFileType = FileType.valueOf( relationshipsFileTypeAsString );
+        JsonNode nodeFile = files.find( isNodeCSVFile() ).get();
+        JsonNode relationshipFile = files.find( isRelationshipCSVFile() ).get();
+
+        FileType nodesFileType = FileType.valueOf( nodeFile.get( "type" ).asText() );
+        FileType relationshipsFileType = FileType.valueOf( relationshipFile.get( "type" ).asText() );
 
         File importDirectory = createImportDirectory( correlationId );
-        String nodesFileLocation = importDirectory.getPath() + "/" + nodesFile;
-        String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipsFile;
+        String nodesFileLocation = importDirectory.getPath() + "/" + nodeFile.get( "name" ).asText();
+        String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipFile.get( "name" ).asText();
 
-        ImportJob job = new ImportJob( nodesFileLocation, relationshipsFileLocation, correlationId, nodesFileType, relationshipsFileType );
+        CSVImportJob job = new CSVImportJob( correlationId, nodesFileLocation, relationshipsFileLocation, nodesFileType, relationshipsFileType );
         executor.execute( job );
 
         return Response.created( URI.create( "http://localhost:7474/tools/import/status/" + correlationId ) ).build();
     }
 
-    class ImportJob implements Runnable
+    private Predicate<JsonNode> isNodeCSVFile()
+    {
+        return new Predicate<JsonNode>()
+        {
+            @Override
+            public boolean matches( JsonNode root )
+            {
+                return FileType.valueOf( root.get( "type" ).asText() ).isNodesCSV();
+            }
+        };
+    }
+
+    private Predicate<JsonNode> isRelationshipCSVFile()
+    {
+        return new Predicate<JsonNode>()
+        {
+            @Override
+            public boolean matches( JsonNode root )
+            {
+                return FileType.valueOf( root.get( "type" ).asText() ).isRelationshipsCSV();
+            }
+        };
+    }
+
+    class CSVImportJob implements Runnable
     {
         private final String nodesFileLocation;
         private final String relationshipsFileLocation;
@@ -160,7 +191,7 @@ public class ImportResource
         private boolean finished = false;
         private Exception exception;
 
-        ImportJob( String nodesFileLocation, String relationshipsFileLocation, String correlationId, FileType
+        CSVImportJob( String correlationId, String nodesFileLocation, String relationshipsFileLocation, FileType
                 nodesFileType, FileType relationshipsFileType )
         {
             this.nodesFileLocation = nodesFileLocation;

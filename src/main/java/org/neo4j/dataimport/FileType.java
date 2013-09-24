@@ -17,6 +17,13 @@ public enum FileType
         this.separator = separator;
     }
 
+    public boolean isNodesCSV() {
+        return this.name().contains( "NODES" );
+    }
+
+    public boolean isRelationshipsCSV() {
+        return this.name().contains( "RELATIONSHIPS" );
+    }
 
     public String friendlyName()
     {
