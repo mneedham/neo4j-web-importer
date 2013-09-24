@@ -3,6 +3,7 @@ package org.neo4j.dataimport;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -16,6 +17,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -24,7 +26,9 @@ import javax.ws.rs.core.Response;
 
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
+import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
@@ -39,7 +43,7 @@ public class ImportResource
     private final GraphDatabaseService database;
     private final Neo4jServer neo4jServer;
     private final Executor executor = Executors.newSingleThreadExecutor();
-    private Map<String, ImportJob> runningJobs = new HashMap<String, ImportJob>();
+    private static Map<String, ImportJob> runningJobs = new HashMap<String, ImportJob>();
 
     public ImportResource( @Context GraphDatabaseService database )
     {
@@ -80,10 +84,15 @@ public class ImportResource
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/status/{correlationId}")
-    public Response howIsMyJobDoing( @QueryParam(value = "correlationId") String correlationId )
+    public Response howIsMyJobDoing( @PathParam(value = "correlationId") String correlationId ) throws IOException
     {
+        System.out.println( "runningJobs = " + runningJobs );
+        System.out.println( "correlationId = " + correlationId );
+
         JsonNode jobStatus = runningJobs.get( correlationId ).toJson();
-        return Response.status( 200 ).entity( jobStatus ).build();
+        String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( jobStatus );
+
+        return Response.ok().entity( response ).type( MediaType.APPLICATION_JSON ).build();
     }
 
     @POST
@@ -95,12 +104,11 @@ public class ImportResource
         File importDirectory = createImportDirectory( correlationId );
         String nodesFileLocation = importDirectory.getPath() + "/" + nodesFile;
         String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipsFile;
-        ImportJob job = new ImportJob( nodesFileLocation, relationshipsFileLocation, correlationId );
 
+        ImportJob job = new ImportJob( nodesFileLocation, relationshipsFileLocation, correlationId );
         executor.execute( job );
 
-
-        return Response.created( URI.create( "/status/" + correlationId ) ).build();
+        return Response.created( URI.create( "http://localhost:7474/tools/import/status/" + correlationId ) ).build();
     }
 
     class ImportJob implements Runnable
@@ -147,11 +155,11 @@ public class ImportResource
             root.put("correlationId", correlationId);
             root.put("finished", finished);
 
-            if(exception != null) {
-                StringWriter writer = new StringWriter();
-                exception.printStackTrace( new PrintWriter( writer ) );
-                root.put("exception", writer.toString());
-            }
+//            if(exception != null) {
+//                StringWriter writer = new StringWriter();
+//                exception.printStackTrace( new PrintWriter( writer ) );
+//                root.put("exception", writer.toString());
+//            }
 
             return root;
         }
