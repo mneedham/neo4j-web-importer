@@ -21,6 +21,10 @@ public class NodesParser
     private final File path;
     private final FileType fileType;
 
+    public NodesParser(String path) {
+        this(new File(path));
+    }
+
     public NodesParser( File path ) {
         this(path, FileType.NODES_TAB_DELIMITED_CSV);
     }

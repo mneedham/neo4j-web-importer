@@ -19,6 +19,10 @@ public class RelationshipsParser
     private final File relationshipsPath;
     private final FileType fileType;
 
+    public RelationshipsParser(String relationshipsPath) {
+        this(new File(relationshipsPath));
+    }
+
     public RelationshipsParser( File relationshipsPath ) {
         this(relationshipsPath, FileType.RELATIONSHIPS_TAB_DELIMITED_CSV);
     }

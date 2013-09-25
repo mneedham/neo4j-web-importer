@@ -24,21 +24,31 @@ public class Neo4jImporter
     private int batchSize = 200;
 
     @Option(name = {"-n", "--nodesfile"}, description = "path to nodes file (default: nodes.csv)")
-    private String nodesFile = "nodes.csv";
+    private NodesParser nodesParser = new NodesParser( "nodes.csv" );
 
     @Option(name = {"-r", "--relsfile"}, description = "path to relationships file (default: relationships.csv)")
-    private String relationshipsFile = "relationships.csv";
+    private RelationshipsParser relationshipsParser = new RelationshipsParser( "relationships.csv" );
 
     @Option(name = {"-db"}, description = "host:port of neo4j server (default: http://localhost:7474)")
     private String neo4jServerLocation = "http://localhost:7474";
 
-    public void run(  )
-    {
-        int batchWithinBatchSize = 50;
+    private Neo4jServer neo4jServer;
 
-        NodesParser nodesParser = new NodesParser( new File( nodesFile ) );
-        RelationshipsParser relationshipsParser = new RelationshipsParser( new File( relationshipsFile ) );
-        Neo4jServer neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, batchWithinBatchSize, neo4jServerLocation );
+
+    public Neo4jImporter( NodesParser nodesParser, RelationshipsParser relationshipsParser, int batchSize, String neo4jServerLocation, Neo4jServer neo4jServer )
+    {
+        this.nodesParser = nodesParser;
+        this.relationshipsParser = relationshipsParser;
+        this.batchSize = batchSize;
+        this.neo4jServerLocation = neo4jServerLocation;
+        this.neo4jServer = neo4jServer;
+    }
+
+    public void run()
+    {
+        if(neo4jServer == null) {
+            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 50, neo4jServerLocation );
+        }
 
         System.out.println( "Importing data into your neo4j database..." );
 
@@ -51,10 +61,10 @@ public class Neo4jImporter
 
     public static void main( String[] args ) throws IOException
     {
-        Neo4jImporter neo4jImporter = SingleCommand.singleCommand( Neo4jImporter.class ).parse(args);
+        Neo4jImporter neo4jImporter = SingleCommand.singleCommand( Neo4jImporter.class ).parse( args );
 
-
-        if (neo4jImporter.helpOption.showHelpIfRequested()) {
+        if ( neo4jImporter.helpOption.showHelpIfRequested() )
+        {
             return;
         }
 
