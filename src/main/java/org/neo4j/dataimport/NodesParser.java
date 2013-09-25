@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVReader;
+import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 public class NodesParser
 {
@@ -42,6 +45,34 @@ public class NodesParser
             String[] nextLine;
             while ((nextLine = reader.readNext()) != null) {
                 Map<String, Object> node = new HashMap<String, Object>(  );
+                for(int i=0; i < nextLine.length; i++) {
+                    node.put(header[i], nextLine[i]);
+                }
+                nodes.add(node);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return nodes;
+    }
+
+    public ArrayNode queryParameters() {
+        ArrayNode nodes = JsonNodeFactory.instance.arrayNode();
+
+        try {
+            CSVReader reader = new CSVReader(new FileReader(path), fileType.separator());
+
+            String[] header = reader.readNext();
+            if (header == null || !Arrays.asList(header).contains("id")) {
+                throw new RuntimeException("No header line found or 'id' field missing in nodes.csv");
+            }
+
+            String[] nextLine;
+            while ((nextLine = reader.readNext()) != null) {
+                ObjectNode node = JsonNodeFactory.instance.objectNode();
                 for(int i=0; i < nextLine.length; i++) {
                     node.put(header[i], nextLine[i]);
                 }

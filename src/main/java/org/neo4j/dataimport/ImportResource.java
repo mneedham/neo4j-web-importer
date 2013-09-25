@@ -43,14 +43,14 @@ public class ImportResource
 
 
     private final GraphDatabaseService database;
-    private final Neo4jServer neo4jServer;
+    private final Neo4jJavaAPI neo4jJavaAPI;
     private final Executor executor = Executors.newSingleThreadExecutor();
     private static Map<String, CSVImportJob> runningJobs = new HashMap<String, CSVImportJob>();
 
     public ImportResource( @Context GraphDatabaseService database )
     {
         this.database = database;
-        this.neo4jServer = new Neo4jServer( database, 10000 );
+        this.neo4jJavaAPI = new Neo4jJavaAPI( database, 10000 );
     }
 
     @POST
@@ -201,13 +201,14 @@ public class ImportResource
             try
             {
                 // look at whether making this return a sequence deals with it lazily
-                List<Map<String, Object>> nodes = new NodesParser( new File( nodesFileLocation ), nodesFileType ).extractNodes();
+                NodesParser nodesParser = new NodesParser( new File( nodesFileLocation ), nodesFileType );
+                List<Map<String, Object>> nodes = nodesParser.extractNodes();
 
-                Map<String, Long> nodeMappings = neo4jServer.importNodes( nodes );
+                Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes( nodesParser );
 
                 List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ), relationshipsFileType ).relationships();
 
-                neo4jServer.importRelationships( sequence( relationships ), nodeMappings );
+                neo4jJavaAPI.importRelationships( sequence( relationships ), nodeMappings );
             }
             catch ( Exception e )
             {
