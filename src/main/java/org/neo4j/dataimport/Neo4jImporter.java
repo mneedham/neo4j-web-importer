@@ -35,7 +35,13 @@ public class Neo4jImporter
     private Neo4jServer neo4jServer;
 
 
-    public Neo4jImporter( NodesParser nodesParser, RelationshipsParser relationshipsParser, int batchSize, String neo4jServerLocation, Neo4jServer neo4jServer )
+    public Neo4jImporter()
+    {
+        // needed by airline
+    }
+
+    public Neo4jImporter( NodesParser nodesParser, RelationshipsParser relationshipsParser, int batchSize,
+                          String neo4jServerLocation, Neo4jServer neo4jServer )
     {
         this.nodesParser = nodesParser;
         this.relationshipsParser = relationshipsParser;
@@ -46,7 +52,8 @@ public class Neo4jImporter
 
     public void run()
     {
-        if(neo4jServer == null) {
+        if ( neo4jServer == null )
+        {
             neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 50, neo4jServerLocation );
         }
 
