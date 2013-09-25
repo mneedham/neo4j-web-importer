@@ -23,8 +23,8 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     private static final String NODE_LOOKUP = "node%s = node({%s}), node%s=node({%s})";
     private static final String CREATE_RELATIONSHIP = " CREATE %s-[:%s]->%s";
     private static final String CREATE_NODE = "CREATE (node {properties}) RETURN node.id, ID(node) AS nodeId";
-    private static final String CYPHER_URI = "http://localhost:7474/db/data/cypher";
-    private static final String TRANSACTIONAL_URI = "http://localhost:7474/db/data/transaction/commit";
+    private static final String CYPHER_URI = "%s/db/data/cypher";
+    private static final String TRANSACTIONAL_URI = "%s/db/data/transaction/commit";
 
     private Client client;
     private int batchSize;
@@ -32,12 +32,17 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
 
     private List<Long> building = new ArrayList<Long>(  );
     private List<Long> querying = new ArrayList<Long>(  );
+    private final  String cypherUri;
+    private final String transactionalUri;
 
-    public Neo4jTransactionalAPI( Client client, int batchSize, int batchWithinBatchSize )
+    public Neo4jTransactionalAPI( Client client, int batchSize, int batchWithinBatchSize, String neo4jServerLocation )
     {
         this.batchSize = batchSize;
         this.batchWithinBatchSize = batchWithinBatchSize;
         this.client = client;
+
+        cypherUri = String.format(CYPHER_URI, neo4jServerLocation);
+        transactionalUri = String.format( TRANSACTIONAL_URI, neo4jServerLocation);
     }
 
     public Map<String, Long> importNodes( NodesParser nodesParser )
@@ -49,7 +54,8 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         properties.put( "properties", nodesParser.queryParameters() );
         cypherQuery.put( "params", properties );
 
-        ClientResponse clientResponse = client.resource( CYPHER_URI ).
+
+        ClientResponse clientResponse = client.resource( cypherUri ).
                 accept( MediaType.APPLICATION_JSON ).
                 entity( cypherQuery, MediaType.APPLICATION_JSON ).
                 post( ClientResponse.class );
@@ -85,7 +91,8 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
             building.add(System.currentTimeMillis() - beforeBuildingQuery);
 
             long beforePosting = System.currentTimeMillis();
-            client.resource( TRANSACTIONAL_URI ).
+
+            client.resource( transactionalUri ).
                     accept( MediaType.APPLICATION_JSON ).
                     entity( query, MediaType.APPLICATION_JSON ).
                     header( "X-Stream", true ).
