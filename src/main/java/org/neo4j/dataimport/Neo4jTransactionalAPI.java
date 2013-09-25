@@ -69,13 +69,15 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     }
 
 
-    public void importRelationships( Sequence<Map<String,
-            Object>> rels, Map<String, Long> nodeMappings )
+    public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeMappings )
     {
-        int numberOfRelationshipsToImport = rels.size();
+        int numberOfRelationshipsToImport = relationships.size();
+
+        System.out.println( "batchSize = " + batchSize );
+        System.out.println( "batchWithinBatchSize = " + batchWithinBatchSize );
 
         for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {
-            Sequence<Map<String, Object>> batchRels = rels.drop( i ).take( batchSize );
+            Sequence<Map<String, Object>> batchRels = relationships.drop( i ).take( batchSize );
 
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();
@@ -99,7 +101,6 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                     post( ClientResponse.class );
             querying.add(System.currentTimeMillis()  - beforePosting);
         }
-
     }
 
 

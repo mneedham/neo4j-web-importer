@@ -54,7 +54,7 @@ public class Neo4jImporter
     {
         if ( neo4jServer == null )
         {
-            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 50, neo4jServerLocation );
+            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation );
         }
 
         System.out.println( "Importing data into your neo4j database..." );

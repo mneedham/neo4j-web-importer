@@ -132,17 +132,16 @@ public class ImportResource
     public Response process( @QueryParam(value = "correlationId") String correlationId,
                              @QueryParam(value = "files") String filesAsString ) throws IOException
     {
+        File importDirectory = createImportDirectory( correlationId );
 
         Sequence<JsonNode> files = sequence( new ObjectMapper().readTree( filesAsString ) );
 
         JsonNode nodeFile = files.find( isNodeCSVFile() ).get();
-        JsonNode relationshipFile = files.find( isRelationshipCSVFile() ).get();
-
         FileType nodesFileType = FileType.valueOf( nodeFile.get( "type" ).asText() );
-        FileType relationshipsFileType = FileType.valueOf( relationshipFile.get( "type" ).asText() );
-
-        File importDirectory = createImportDirectory( correlationId );
         String nodesFileLocation = importDirectory.getPath() + "/" + nodeFile.get( "name" ).asText();
+
+        JsonNode relationshipFile = files.find( isRelationshipCSVFile() ).get();
+        FileType relationshipsFileType = FileType.valueOf( relationshipFile.get( "type" ).asText() );
         String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipFile.get( "name" ).asText();
 
         CSVImportJob job = new CSVImportJob( correlationId, nodesFileLocation, relationshipsFileLocation, nodesFileType, relationshipsFileType );
@@ -202,7 +201,6 @@ public class ImportResource
             {
                 // look at whether making this return a sequence deals with it lazily
                 NodesParser nodesParser = new NodesParser( new File( nodesFileLocation ), nodesFileType );
-                List<Map<String, Object>> nodes = nodesParser.extractNodes();
 
                 Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes( nodesParser );
 
