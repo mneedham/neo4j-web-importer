@@ -73,6 +73,41 @@ public class Neo4jImporterTest {
         assertEquals("[\"Andreas\",\"Peter\",[\"Person\"],[\"Person\"]]", rows.get(1).toString());
     }
 
+    @Test
+    public void shouldNotImportLabelAsAPropertyOnANode() {
+        Client client = jerseyClient();
+
+        NodesParser nodesParser = mock(NodesParser.class);
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
+
+        ArrayNode createNodesParserParameters = JsonNodeFactory.instance.arrayNode();
+        createNodesParserParameters.add(node("1", "Mark", "Person"));
+        when(nodesParser.queryParameters()).thenReturn( createNodesParserParameters );
+
+        List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
+
+        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
+
+        new Neo4jImporter(nodesParser, relationshipsParser, 1, "http://localhost:7474", new Neo4jTransactionalAPI( client, 1, 1, "http://localhost:7474" ) ).run();
+
+        String query = " START n = node(*)";
+        query       += " RETURN n.name, n.label";
+
+        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
+        cypherQuery.put("query", query);
+        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
+
+        ClientResponse clientResponse = postCypherQuery(client, cypherQuery);
+
+        System.out.println( "clientResponse = " + clientResponse );
+
+        JsonNode rows = clientResponse.getEntity(JsonNode.class).get("data");
+
+        assertEquals(1, rows.size());
+        assertEquals("[\"Mark\",null]", rows.get(0).toString());
+    }
+
+
     private ClientResponse postCypherQuery(Client client, ObjectNode cypherQuery) {
         return client.
                 resource("http://localhost:7474/db/data/cypher").

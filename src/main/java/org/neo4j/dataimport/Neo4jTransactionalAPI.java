@@ -63,19 +63,17 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
             ArrayNode params = JsonNodeFactory.instance.arrayNode();
             for ( JsonNode jsonNode : nodeLabel )
             {
+                ((ObjectNode) jsonNode).remove( "label" );
                 params.add(jsonNode);
             }
 
             properties.put( "properties", params );
             cypherQuery.put( "params", properties );
 
-            System.out.println( "cypherQuery = " + cypherQuery );
-
             ClientResponse clientResponse = client.resource( cypherUri ).
                     accept( MediaType.APPLICATION_JSON ).
                     entity( cypherQuery, MediaType.APPLICATION_JSON ).
                     post( ClientResponse.class );
-
 
             for (JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" )) {
                 ArrayNode  mapping = (ArrayNode) mappingAsJsonNode;
