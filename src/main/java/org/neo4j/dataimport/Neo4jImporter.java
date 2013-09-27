@@ -20,7 +20,7 @@ public class Neo4jImporter
     @Inject
     public io.airlift.command.HelpOption helpOption;
 
-    @Option(name = {"-c", "--count"}, description = "number of relationships to commit in a transaction (default: 200)")
+    @Option(name = {"-c", "--commit"}, description = "number of relationships to commit in a transaction (default: 200)")
     private int batchSize = 200;
 
     @Option(name = {"-n", "--nodesfile"}, description = "path to nodes file (default: nodes.csv)")

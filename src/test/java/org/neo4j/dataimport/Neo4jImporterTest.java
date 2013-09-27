@@ -31,18 +31,19 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void shouldImportTwoNodesParserAndARelationshipBetweenThem() {
+    public void shouldImportTwoNodesWithLabelsAndARelationshipBetweenThem() {
         Client client = jerseyClient();
 
         NodesParser nodesParser = mock(NodesParser.class);
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
 
         ArrayNode createNodesParserParameters = JsonNodeFactory.instance.arrayNode();
-        createNodesParserParameters.add(node("1", "Mark"));
-        createNodesParserParameters.add(node("2", "Andreas"));
-        createNodesParserParameters.add(node("3", "Peter"));
-        createNodesParserParameters.add(node("4", "Michael"));
-        createNodesParserParameters.add(node("5", "Jim"));
+        createNodesParserParameters.add(node("1", "Mark", "Person"));
+        createNodesParserParameters.add(node("2", "Andreas", "Person"));
+        createNodesParserParameters.add(node("3", "Peter", "Person"));
+        createNodesParserParameters.add(node("4", "Michael", "Person"));
+        createNodesParserParameters.add(node("5", "Jim", "Person"));
+        createNodesParserParameters.add(node("6", "Thing", "Ting"));
         when(nodesParser.queryParameters()).thenReturn( createNodesParserParameters );
 
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
@@ -55,7 +56,7 @@ public class Neo4jImporterTest {
 
         String query = " START n = node(*)";
         query       += " MATCH n-[:FRIEND_OF]->p2";
-        query       += " RETURN n.name, p2.name";
+        query       += " RETURN n.name, p2.name, LABELS(n), LABELS(p2)";
 
         ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
         cypherQuery.put("query", query);
@@ -63,11 +64,13 @@ public class Neo4jImporterTest {
 
         ClientResponse clientResponse = postCypherQuery(client, cypherQuery);
 
+        System.out.println( "clientResponse = " + clientResponse );
+
         JsonNode rows = clientResponse.getEntity(JsonNode.class).get("data");
 
         assertEquals(2, rows.size());
-        assertEquals("[\"Mark\",\"Andreas\"]", rows.get(0).toString());
-        assertEquals("[\"Andreas\",\"Peter\"]", rows.get(1).toString());
+        assertEquals("[\"Mark\",\"Andreas\",[\"Person\"],[\"Person\"]]", rows.get(0).toString());
+        assertEquals("[\"Andreas\",\"Peter\",[\"Person\"],[\"Person\"]]", rows.get(1).toString());
     }
 
     private ClientResponse postCypherQuery(Client client, ObjectNode cypherQuery) {
@@ -86,10 +89,11 @@ public class Neo4jImporterTest {
         return relationship;
     }
 
-    private ObjectNode node(String id, String name) {
+    private ObjectNode node( String id, String name, String label ) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put("id", id);
         node.put("name", name);
+        node.put("label", label);
         return node;
     }
 

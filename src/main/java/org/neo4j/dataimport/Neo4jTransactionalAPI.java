@@ -7,8 +7,10 @@ import java.util.Map;
 import javax.ws.rs.core.MediaType;
 
 import com.googlecode.totallylazy.Callable1;
+import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Pair;
 import com.googlecode.totallylazy.Sequence;
+import com.googlecode.totallylazy.Sequences;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.lang.StringUtils;
@@ -17,12 +19,13 @@ import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
+import static com.googlecode.totallylazy.Sequences.sequence;
 import static com.googlecode.totallylazy.numbers.Numbers.range;
 
 public class Neo4jTransactionalAPI implements  Neo4jServer {
     private static final String NODE_LOOKUP = "node%s = node({%s}), node%s=node({%s})";
     private static final String CREATE_RELATIONSHIP = " CREATE %s-[:%s]->%s";
-    private static final String CREATE_NODE = "CREATE (node {properties}) RETURN node.id, ID(node) AS nodeId";
+    private static final String CREATE_NODE = "CREATE (node {properties}) SET node :%s RETURN node.id, ID(node) AS nodeId";
     private static final String CYPHER_URI = "%s/db/data/cypher";
     private static final String TRANSACTIONAL_URI = "%s/db/data/transaction/commit";
 
@@ -47,25 +50,54 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
 
     public Map<String, Long> importNodes( NodesParser nodesParser )
     {
-        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-        cypherQuery.put( "query", CREATE_NODE );
-
-        ObjectNode properties = JsonNodeFactory.instance.objectNode();
-        properties.put( "properties", nodesParser.queryParameters() );
-        cypherQuery.put( "params", properties );
-
-
-        ClientResponse clientResponse = client.resource( cypherUri ).
-                accept( MediaType.APPLICATION_JSON ).
-                entity( cypherQuery, MediaType.APPLICATION_JSON ).
-                post( ClientResponse.class );
-
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
-        for (JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" )) {
-            ArrayNode  mapping = (ArrayNode) mappingAsJsonNode;
-            nodeMappings.put(mapping.get(0).asText(), mapping.get(1).asLong());
+        Sequence<Group<String, JsonNode>> nodesByLabel = sequence( nodesParser.queryParameters() ).groupBy( label() );
+
+        for ( Group<String, JsonNode> nodeLabel : nodesByLabel )
+        {
+            ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
+            cypherQuery.put( "query", String.format(CREATE_NODE, nodeLabel.key()) );
+
+            ObjectNode properties = JsonNodeFactory.instance.objectNode();
+
+            ArrayNode params = JsonNodeFactory.instance.arrayNode();
+            for ( JsonNode jsonNode : nodeLabel )
+            {
+                params.add(jsonNode);
+            }
+
+            properties.put( "properties", params );
+            cypherQuery.put( "params", properties );
+
+            System.out.println( "cypherQuery = " + cypherQuery );
+
+            ClientResponse clientResponse = client.resource( cypherUri ).
+                    accept( MediaType.APPLICATION_JSON ).
+                    entity( cypherQuery, MediaType.APPLICATION_JSON ).
+                    post( ClientResponse.class );
+
+
+            for (JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" )) {
+                ArrayNode  mapping = (ArrayNode) mappingAsJsonNode;
+                nodeMappings.put(mapping.get(0).asText(), mapping.get(1).asLong());
+            }
         }
+
+
+
         return nodeMappings;
+    }
+
+    private Callable1<JsonNode, String> label()
+    {
+        return new Callable1<JsonNode, String>()
+        {
+            @Override
+            public String call( JsonNode jsonNode ) throws Exception
+            {
+                return jsonNode.get("label").asText();
+            }
+        };
     }
 
 
