@@ -24,10 +24,7 @@ import static org.mockito.Mockito.when;
 public class Neo4jImporterTest {
     @Before
     public void clearDb() {
-        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-        cypherQuery.put("query", "START n = node(*) MATCH n-[r?]-m DELETE m,r,n");
-        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
-        postCypherQuery(jerseyClient(), cypherQuery);
+        postCypherQuery(jerseyClient(), cypherQuery( "START n = node(*) MATCH n-[r?]-m DELETE m,r,n" ) );
     }
 
     @Test
@@ -58,11 +55,7 @@ public class Neo4jImporterTest {
         query       += " MATCH n-[:FRIEND_OF]->p2";
         query       += " RETURN n.name, p2.name, LABELS(n), LABELS(p2)";
 
-        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-        cypherQuery.put("query", query);
-        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
-
-        ClientResponse clientResponse = postCypherQuery(client, cypherQuery);
+        ClientResponse clientResponse = postCypherQuery(client, cypherQuery( query ) );
 
         System.out.println( "clientResponse = " + clientResponse );
 
@@ -71,6 +64,14 @@ public class Neo4jImporterTest {
         assertEquals(2, rows.size());
         assertEquals("[\"Mark\",\"Andreas\",[\"Person\"],[\"Person\"]]", rows.get(0).toString());
         assertEquals("[\"Andreas\",\"Peter\",[\"Person\"],[\"Person\"]]", rows.get(1).toString());
+    }
+
+    private ObjectNode cypherQuery( String query )
+    {
+        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
+        cypherQuery.put("query", query);
+        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
+        return cypherQuery;
     }
 
     @Test
@@ -93,11 +94,7 @@ public class Neo4jImporterTest {
         String query = " START n = node(*)";
         query       += " RETURN n.name, n.label";
 
-        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-        cypherQuery.put("query", query);
-        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
-
-        ClientResponse clientResponse = postCypherQuery(client, cypherQuery);
+        ClientResponse clientResponse = postCypherQuery(client, cypherQuery( query ) );
 
         System.out.println( "clientResponse = " + clientResponse );
 
