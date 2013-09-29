@@ -34,14 +34,14 @@ public class Neo4jImporterTest {
         NodesParser nodesParser = mock(NodesParser.class);
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
 
-        ArrayNode createNodesParserParameters = JsonNodeFactory.instance.arrayNode();
-        createNodesParserParameters.add(node("1", "Mark", "Person"));
-        createNodesParserParameters.add(node("2", "Andreas", "Person"));
-        createNodesParserParameters.add(node("3", "Peter", "Person"));
-        createNodesParserParameters.add(node("4", "Michael", "Person"));
-        createNodesParserParameters.add(node("5", "Jim", "Person"));
-        createNodesParserParameters.add(node("6", "Thing", "Ting"));
-        when(nodesParser.queryParameters()).thenReturn( createNodesParserParameters );
+        List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
+        nodes.add(nodeAsMap("1", "Mark", "Person"));
+        nodes.add(nodeAsMap("2", "Andreas", "Person"));
+        nodes.add(nodeAsMap("3", "Peter", "Person"));
+        nodes.add(nodeAsMap("4", "Michael", "Person"));
+        nodes.add(nodeAsMap("5", "Jim", "Person"));
+        nodes.add(nodeAsMap("6", "Thing", "Ting"));
+        when(nodesParser.extractNodes()).thenReturn(nodes);
 
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
         relationshipsProperties.add(relationship("1", "2", "FRIEND_OF"));
@@ -83,9 +83,9 @@ public class Neo4jImporterTest {
         NodesParser nodesParser = mock(NodesParser.class);
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
 
-        ArrayNode createNodesParserParameters = JsonNodeFactory.instance.arrayNode();
-        createNodesParserParameters.add(node("1", "Mark", "Person"));
-        when(nodesParser.queryParameters()).thenReturn( createNodesParserParameters );
+        List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
+        nodes.add(nodeAsMap("1", "Mark", "Person"));
+        when(nodesParser.extractNodes()).thenReturn(nodes);
 
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
 
@@ -125,6 +125,14 @@ public class Neo4jImporterTest {
 
     private ObjectNode node( String id, String name, String label ) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
+        node.put("id", id);
+        node.put("name", name);
+        node.put("label", label);
+        return node;
+    }
+
+    private Map<String, Object> nodeAsMap( String id, String name, String label ) {
+        Map<String, Object> node = new HashMap<String, Object>();
         node.put("id", id);
         node.put("name", name);
         node.put("label", label);

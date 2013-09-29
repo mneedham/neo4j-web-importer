@@ -51,20 +51,28 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     public Map<String, Long> importNodes( NodesParser nodesParser )
     {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
-        Sequence<Group<String, JsonNode>> nodesByLabel = sequence( nodesParser.queryParameters() ).groupBy( label() );
+        Sequence<Group<String, Map<String, Object>>> nodesByLabel = sequence( nodesParser.extractNodes() ).groupBy(label());
 
-        for ( Group<String, JsonNode> nodeLabel : nodesByLabel )
+
+        for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )
         {
             ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-            cypherQuery.put( "query", String.format(CREATE_NODE, nodeLabel.key()) );
+            cypherQuery.put( "query", String.format(CREATE_NODE, labelAndNodes.key()) );
 
             ObjectNode properties = JsonNodeFactory.instance.objectNode();
 
             ArrayNode params = JsonNodeFactory.instance.arrayNode();
-            for ( JsonNode jsonNode : nodeLabel )
+            for ( Map<String, Object> row : labelAndNodes )
             {
-                ((ObjectNode) jsonNode).remove( "label" );
-                params.add(jsonNode);
+                row.remove("label");
+
+                ObjectNode jsonRow = JsonNodeFactory.instance.objectNode();
+                for (Map.Entry<String, Object> property : row.entrySet())
+                {
+                    jsonRow.put(property.getKey(), property.getValue().toString());
+                }
+
+                params.add(jsonRow);
             }
 
             properties.put( "properties", params );
@@ -86,14 +94,14 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         return nodeMappings;
     }
 
-    private Callable1<JsonNode, String> label()
+    private Callable1<Map<String, Object>, String> label()
     {
-        return new Callable1<JsonNode, String>()
+        return new Callable1<Map<String, Object>, String>()
         {
             @Override
-            public String call( JsonNode jsonNode ) throws Exception
+            public String call( Map<String, Object> row ) throws Exception
             {
-                return jsonNode.get("label").asText();
+                return row.get("label").toString();
             }
         };
     }
