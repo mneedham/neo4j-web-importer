@@ -28,11 +28,8 @@ public class Neo4jImporterTest {
 
     @Test
     public void shouldImportTwoNodesWithLabelsAndARelationshipBetweenThem() {
-        Client client = jerseyClient();
-
+        //given
         NodesParser nodesParser = mock(NodesParser.class);
-        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
         nodes.add(nodeWithLabel("2", "Andreas", "Person"));
@@ -42,19 +39,21 @@ public class Neo4jImporterTest {
         nodes.add(nodeWithLabel("6", "Thing", "Ting"));
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
         relationshipsProperties.add(relationship("1", "2", "FRIEND_OF"));
         relationshipsProperties.add(relationship("2", "3", "FRIEND_OF"));
-
         when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
 
-        importer(client, nodesParser, relationshipsParser).run();
+        // when
+        importer(jerseyClient(), nodesParser, relationshipsParser).run();
 
+        // then
         String query = " START n = node(*)";
         query       += " MATCH n-[:FRIEND_OF]->p2";
         query       += " RETURN n.name, p2.name, LABELS(n), LABELS(p2)";
 
-        JsonNode rows = postCypherQuery(client, cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
+        JsonNode rows = postCypherQuery(jerseyClient(), cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
 
         assertEquals(2, rows.size());
         assertEquals("[\"Mark\",\"Andreas\",[\"Person\"],[\"Person\"]]", rows.get(0).toString());
@@ -63,23 +62,21 @@ public class Neo4jImporterTest {
 
     @Test
     public void shouldNotImportLabelAsAPropertyOnANode() {
-        Client client = jerseyClient();
-
-        NodesParser nodesParser = mock(NodesParser.class);
-        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-
+        // given
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
+        NodesParser nodesParser = mock(NodesParser.class);
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         when( relationshipsParser.relationships()).thenReturn(new ArrayList<Map<String, Object>>());
 
-        importer(client, nodesParser, relationshipsParser).run();
+        //when
+        importer(jerseyClient(), nodesParser, relationshipsParser).run();
 
-        String query = " START n = node(*)";
-        query       += " RETURN n.name, n.label";
-
-        JsonNode rows = postCypherQuery(client, cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
+        // then
+        String query = " START n = node(*) RETURN n.name, n.label";
+        JsonNode rows = postCypherQuery(jerseyClient(), cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
 
         assertEquals(1, rows.size());
         assertEquals("[\"Mark\",null]", rows.get(0).toString());
@@ -87,29 +84,23 @@ public class Neo4jImporterTest {
 
     @Test
     public void shouldImportWhenOnlySomeNodesHaveLabels() {
-        Client client = jerseyClient();
-
+        // given
         NodesParser nodesParser = mock(NodesParser.class);
-        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
         nodes.add(nodeWithLabel("2", "OtherMark", ""));
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
-
         when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
 
-        importer(client, nodesParser, relationshipsParser).run();
+        //when
+        importer(jerseyClient(), nodesParser, relationshipsParser).run();
 
-        String query = " START n = node(*)";
-        query       += " RETURN n.name, labels(n)";
-
-        ClientResponse clientResponse = postCypherQuery(client, cypherQuery( query ) );
-
-        System.out.println( "clientResponse = " + clientResponse );
-
+        // then
+        String query = " START n = node(*) RETURN n.name, labels(n)";
+        ClientResponse clientResponse = postCypherQuery(jerseyClient(), cypherQuery( query ) );
         JsonNode rows = clientResponse.getEntity(JsonNode.class).get("data");
 
         assertEquals(2, rows.size());
@@ -119,25 +110,22 @@ public class Neo4jImporterTest {
 
     @Test
     public void shouldImportNodesWithoutLabel() {
-        Client client = jerseyClient();
-
+        // given
         NodesParser nodesParser = mock(NodesParser.class);
-        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithoutLabel("1", "Mark"));
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
-        List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
+        when( relationshipsParser.relationships()).thenReturn(new ArrayList<Map<String, Object>>());
 
-        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
+        // when
+        importer(jerseyClient(), nodesParser, relationshipsParser).run();
 
-        importer(client, nodesParser, relationshipsParser).run();
+        // then
+        String query = " START n = node(*) RETURN n.name";
 
-        String query = " START n = node(*)";
-        query       += " RETURN n.name";
-
-        JsonNode rows = postCypherQuery(client, cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
+        JsonNode rows = postCypherQuery(jerseyClient(), cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
 
         assertEquals(1, rows.size());
         assertEquals("[\"Mark\"]", rows.get(0).toString());
@@ -171,4 +159,3 @@ public class Neo4jImporterTest {
     }
 
 }
-
