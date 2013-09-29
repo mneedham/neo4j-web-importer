@@ -53,7 +53,6 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
         Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(label());
 
-
         for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )
         {
             ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();

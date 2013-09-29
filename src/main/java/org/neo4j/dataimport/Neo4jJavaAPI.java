@@ -4,6 +4,8 @@ package org.neo4j.dataimport;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.googlecode.totallylazy.Callable1;
+import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Sequence;
 
 import org.neo4j.graphdb.*;
@@ -24,31 +26,48 @@ public class Neo4jJavaAPI implements Neo4jServer
     {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
 
-        Transaction tx = db.beginTx();
+        Sequence<Group<Object,Map<String,Object>>> nodesByLabel = nodes.groupBy(label());
 
-        for ( Map<String, Object> row : nodes )
-        {
-            Node node;
-            if(row.get("label").equals("")) {
-                node = db.createNode();
-            } else {
-                node = db.createNode(DynamicLabel.label(row.get("label").toString()));
-            }
-
-            for ( Map.Entry<String, Object> property : row.entrySet() )
+        for (Group<Object, Map<String, Object>> labelAndNodes : nodesByLabel) {
+            Transaction tx = db.beginTx();
+            for ( Map<String, Object> row : labelAndNodes )
             {
-                if(!property.getKey().equals("label")){
-                    node.setProperty( property.getKey(), property.getValue() );
+                Node node;
+                if(labelAndNodes.key().equals("")) {
+                    node = db.createNode();
+                } else {
+                    node = db.createNode(DynamicLabel.label(labelAndNodes.key().toString()));
                 }
+
+                for ( Map.Entry<String, Object> property : row.entrySet() )
+                {
+                    if(!property.getKey().equals("label")){
+                        node.setProperty( property.getKey(), property.getValue() );
+                    }
+                }
+
+                nodeMappings.put(row.get("id").toString(), node.getId());
             }
 
-            nodeMappings.put(row.get("id").toString(), node.getId());
+            tx.success();
+            tx.finish();
         }
 
-        tx.success();
-        tx.finish();
 
         return nodeMappings;
+    }
+
+    private Callable1<Map<String, Object>, Object> label() {
+        return new Callable1<Map<String, Object>, Object>() {
+            @Override
+            public Object call(Map<String, Object> stringObjectMap) throws Exception {
+                Object label = stringObjectMap.get("label");
+                if(label == null) {
+                    return "";
+                }
+                return label.toString();
+            }
+        };
     }
 
     @Override
