@@ -48,8 +48,7 @@ public class Neo4jImporterTest {
 
         when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
 
-        Neo4jImporter importer = importer(client, nodesParser, relationshipsParser);
-        importer.run();
+        importer(client, nodesParser, relationshipsParser).run();
 
         String query = " START n = node(*)";
         query       += " MATCH n-[:FRIEND_OF]->p2";
@@ -60,19 +59,6 @@ public class Neo4jImporterTest {
         assertEquals(2, rows.size());
         assertEquals("[\"Mark\",\"Andreas\",[\"Person\"],[\"Person\"]]", rows.get(0).toString());
         assertEquals("[\"Andreas\",\"Peter\",[\"Person\"],[\"Person\"]]", rows.get(1).toString());
-    }
-
-    private Neo4jImporter importer(Client client, NodesParser nodesParser, RelationshipsParser relationshipsParser) {
-        return new Neo4jImporter(nodesParser, relationshipsParser, 1, "http://localhost:7474",
-                new Neo4jTransactionalAPI(client, 1, 1, "http://localhost:7474"));
-    }
-
-    private ObjectNode cypherQuery( String query )
-    {
-        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-        cypherQuery.put("query", query);
-        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
-        return cypherQuery;
     }
 
     @Test
@@ -86,9 +72,7 @@ public class Neo4jImporterTest {
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
-        List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
-
-        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
+        when( relationshipsParser.relationships()).thenReturn(new ArrayList<Map<String, Object>>());
 
         importer(client, nodesParser, relationshipsParser).run();
 
@@ -159,6 +143,18 @@ public class Neo4jImporterTest {
         assertEquals("[\"Mark\"]", rows.get(0).toString());
     }
 
+    private Neo4jImporter importer(Client client, NodesParser nodesParser, RelationshipsParser relationshipsParser) {
+        return new Neo4jImporter(nodesParser, relationshipsParser, 1, "http://localhost:7474",
+                new Neo4jTransactionalAPI(client, 1, 1, "http://localhost:7474"));
+    }
+
+    private ObjectNode cypherQuery( String query )
+    {
+        ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
+        cypherQuery.put("query", query);
+        cypherQuery.put("params", JsonNodeFactory.instance.objectNode());
+        return cypherQuery;
+    }
 
     private ClientResponse postCypherQuery(Client client, ObjectNode cypherQuery) {
         return client.
