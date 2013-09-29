@@ -34,10 +34,10 @@ public class NodesParserTest
         NodesParser nodes = new NodesParser(new File("src/main/resources/nodes_no_header.csv"));
 
         try {
-            nodes.queryParameters();
+            nodes.extractNodes();
             fail("Should have thrown Runtime Exception");
         } catch(Exception ex) {
-            assertEquals("No header line found or 'id' field missing in nodes.csv", ex.getMessage());
+            assertEquals("No header line found or 'id' field missing in nodes file", ex.getMessage());
         }
     }
 

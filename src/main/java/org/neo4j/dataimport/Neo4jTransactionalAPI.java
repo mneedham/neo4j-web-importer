@@ -26,6 +26,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     private static final String NODE_LOOKUP = "node%s = node({%s}), node%s=node({%s})";
     private static final String CREATE_RELATIONSHIP = " CREATE %s-[:%s]->%s";
     private static final String CREATE_NODE = "CREATE (node {properties}) SET node :%s RETURN node.id, ID(node) AS nodeId";
+    private static final String CREATE_NODE_WITHOUT_LABEL = "CREATE (node {properties}) RETURN node.id, ID(node) AS nodeId";
     private static final String CYPHER_URI = "%s/db/data/cypher";
     private static final String TRANSACTIONAL_URI = "%s/db/data/transaction/commit";
 
@@ -57,7 +58,13 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )
         {
             ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-            cypherQuery.put( "query", String.format(CREATE_NODE, labelAndNodes.key()) );
+
+            if(labelAndNodes.key().equals("")) {
+                cypherQuery.put( "query", CREATE_NODE_WITHOUT_LABEL);
+            } else {
+                cypherQuery.put( "query", String.format(CREATE_NODE, labelAndNodes.key()) );
+            }
+
 
             ObjectNode properties = JsonNodeFactory.instance.objectNode();
 
@@ -83,6 +90,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                     entity( cypherQuery, MediaType.APPLICATION_JSON ).
                     post( ClientResponse.class );
 
+
             for (JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" )) {
                 ArrayNode  mapping = (ArrayNode) mappingAsJsonNode;
                 nodeMappings.put(mapping.get(0).asText(), mapping.get(1).asLong());
@@ -101,7 +109,11 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
             @Override
             public String call( Map<String, Object> row ) throws Exception
             {
-                return row.get("label").toString();
+                Object label = row.get("label");
+                if(label == null ) {
+                    return "";
+                }
+                return label.toString();
             }
         };
     }

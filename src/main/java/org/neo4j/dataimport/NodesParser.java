@@ -63,34 +63,6 @@ public class NodesParser
         return nodes;
     }
 
-    public ArrayNode queryParameters() {
-        ArrayNode nodes = JsonNodeFactory.instance.arrayNode();
-
-        try {
-            CSVReader reader = new CSVReader(new FileReader(path), fileType.separator());
-
-            String[] header = reader.readNext();
-            if (header == null || !Arrays.asList(header).contains("id")) {
-                throw new RuntimeException("No header line found or 'id' field missing in nodes.csv");
-            }
-
-            String[] nextLine;
-            while ((nextLine = reader.readNext()) != null) {
-                ObjectNode node = JsonNodeFactory.instance.objectNode();
-                for(int i=0; i < nextLine.length; i++) {
-                    node.put(header[i], nextLine[i]);
-                }
-                nodes.add(node);
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return nodes;
-    }
-
     public String header() throws IOException
     {
         return new BufferedReader(new FileReader( path )).readLine();

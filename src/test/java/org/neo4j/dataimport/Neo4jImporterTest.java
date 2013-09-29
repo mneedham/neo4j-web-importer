@@ -11,7 +11,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
-import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 import org.junit.Before;
@@ -35,12 +34,12 @@ public class Neo4jImporterTest {
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
 
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
-        nodes.add(nodeAsMap("1", "Mark", "Person"));
-        nodes.add(nodeAsMap("2", "Andreas", "Person"));
-        nodes.add(nodeAsMap("3", "Peter", "Person"));
-        nodes.add(nodeAsMap("4", "Michael", "Person"));
-        nodes.add(nodeAsMap("5", "Jim", "Person"));
-        nodes.add(nodeAsMap("6", "Thing", "Ting"));
+        nodes.add(nodeWithLabel("1", "Mark", "Person"));
+        nodes.add(nodeWithLabel("2", "Andreas", "Person"));
+        nodes.add(nodeWithLabel("3", "Peter", "Person"));
+        nodes.add(nodeWithLabel("4", "Michael", "Person"));
+        nodes.add(nodeWithLabel("5", "Jim", "Person"));
+        nodes.add(nodeWithLabel("6", "Thing", "Ting"));
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
@@ -84,7 +83,7 @@ public class Neo4jImporterTest {
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
 
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
-        nodes.add(nodeAsMap("1", "Mark", "Person"));
+        nodes.add(nodeWithLabel("1", "Mark", "Person"));
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
@@ -106,6 +105,36 @@ public class Neo4jImporterTest {
         assertEquals("[\"Mark\",null]", rows.get(0).toString());
     }
 
+    @Test
+    public void shouldImportNodesWithoutLabel() {
+        Client client = jerseyClient();
+
+        NodesParser nodesParser = mock(NodesParser.class);
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
+
+        List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
+        nodes.add(nodeWithoutLabel("1", "Mark"));
+        when(nodesParser.extractNodes()).thenReturn(nodes);
+
+        List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
+
+        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
+
+        importer(client, nodesParser, relationshipsParser).run();
+
+        String query = " START n = node(*)";
+        query       += " RETURN n.name";
+
+        ClientResponse clientResponse = postCypherQuery(client, cypherQuery( query ) );
+
+        System.out.println( "clientResponse = " + clientResponse );
+
+        JsonNode rows = clientResponse.getEntity(JsonNode.class).get("data");
+
+        assertEquals(1, rows.size());
+        assertEquals("[\"Mark\"]", rows.get(0).toString());
+    }
+
 
     private ClientResponse postCypherQuery(Client client, ObjectNode cypherQuery) {
         return client.
@@ -123,11 +152,18 @@ public class Neo4jImporterTest {
         return relationship;
     }
 
-    private Map<String, Object> nodeAsMap( String id, String name, String label ) {
+    private Map<String, Object> nodeWithLabel(String id, String name, String label) {
         Map<String, Object> node = new HashMap<String, Object>();
         node.put("id", id);
         node.put("name", name);
         node.put("label", label);
+        return node;
+    }
+
+    private Map<String, Object> nodeWithoutLabel(String id, String name) {
+        Map<String, Object> node = new HashMap<String, Object>();
+        node.put("id", id);
+        node.put("name", name);
         return node;
     }
 
