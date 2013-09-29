@@ -1,6 +1,10 @@
 package org.neo4j.dataimport;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
@@ -16,11 +20,11 @@ public class NodesParserTest
     public void shouldCreateCypherQueryParametersFromFile() {
         NodesParser nodes = new NodesParser(new File("src/main/resources/nodes.csv"));
 
-        ArrayNode expectedParameters = JsonNodeFactory.instance.arrayNode();
+        List<Map<String, Object>> expectedParameters = new ArrayList<Map<String, Object>>();
         expectedParameters.add(createNode("1", "Mark"));
         expectedParameters.add(createNode("2", "Andreas"));
 
-        ArrayNode actualParameters = nodes.queryParameters();
+        List<Map<String, Object>> actualParameters = nodes.extractNodes();
 
         assertEquals(expectedParameters, actualParameters);
     }
@@ -37,10 +41,10 @@ public class NodesParserTest
         }
     }
 
-    private ObjectNode createNode(String id, String name) {
-        ObjectNode person1 = JsonNodeFactory.instance.objectNode();
-        person1.put("id", id);
-        person1.put("name", name);
-        return person1;
+    private Map<String, Object> createNode(String id, String name) {
+        Map<String, Object> node = new HashMap<String, Object>();
+        node.put("id", id);
+        node.put("name", name);
+        return node;
     }
 }

@@ -123,14 +123,6 @@ public class Neo4jImporterTest {
         return relationship;
     }
 
-    private ObjectNode node( String id, String name, String label ) {
-        ObjectNode node = JsonNodeFactory.instance.objectNode();
-        node.put("id", id);
-        node.put("name", name);
-        node.put("label", label);
-        return node;
-    }
-
     private Map<String, Object> nodeAsMap( String id, String name, String label ) {
         Map<String, Object> node = new HashMap<String, Object>();
         node.put("id", id);
