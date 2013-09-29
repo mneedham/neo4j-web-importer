@@ -1,7 +1,6 @@
 package org.neo4j.dataimport;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
@@ -63,25 +62,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                 cypherQuery.put( "query", String.format(CREATE_NODE, labelAndNodes.key()) );
             }
 
-
-            ObjectNode properties = JsonNodeFactory.instance.objectNode();
-
-            ArrayNode params = JsonNodeFactory.instance.arrayNode();
-            for ( Map<String, Object> row : labelAndNodes )
-            {
-                row.remove("label");
-
-                ObjectNode jsonRow = JsonNodeFactory.instance.objectNode();
-                for (Map.Entry<String, Object> property : row.entrySet())
-                {
-                    jsonRow.put(property.getKey(), property.getValue().toString());
-                }
-
-                params.add(jsonRow);
-            }
-
-            properties.put( "properties", params );
-            cypherQuery.put( "params", properties );
+            cypherQuery.put( "params", createProperties(createParams(labelAndNodes)));
 
             ClientResponse clientResponse = client.resource( cypherUri ).
                     accept( MediaType.APPLICATION_JSON ).
@@ -96,6 +77,29 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         }
 
         return nodeMappings;
+    }
+
+    private ObjectNode createProperties(ArrayNode params) {
+        ObjectNode properties = JsonNodeFactory.instance.objectNode();
+        properties.put( "properties", params);
+        return properties;
+    }
+
+    private ArrayNode createParams(Group<String, Map<String, Object>> labelAndNodes) {
+        ArrayNode params = JsonNodeFactory.instance.arrayNode();
+        for ( Map<String, Object> row : labelAndNodes )
+        {
+            row.remove("label");
+
+            ObjectNode jsonRow = JsonNodeFactory.instance.objectNode();
+            for (Map.Entry<String, Object> property : row.entrySet())
+            {
+                jsonRow.put(property.getKey(), property.getValue().toString());
+            }
+
+            params.add(jsonRow);
+        }
+        return params;
     }
 
 
