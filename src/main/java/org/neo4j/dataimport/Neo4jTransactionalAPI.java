@@ -10,7 +10,6 @@ import com.googlecode.totallylazy.Callable1;
 import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Pair;
 import com.googlecode.totallylazy.Sequence;
-import com.googlecode.totallylazy.Sequences;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.lang.StringUtils;
@@ -49,10 +48,10 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         transactionalUri = String.format( TRANSACTIONAL_URI, neo4jServerLocation);
     }
 
-    public Map<String, Long> importNodes( NodesParser nodesParser )
+    public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
     {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
-        Sequence<Group<String, Map<String, Object>>> nodesByLabel = sequence( nodesParser.extractNodes() ).groupBy(label());
+        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(label());
 
 
         for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )

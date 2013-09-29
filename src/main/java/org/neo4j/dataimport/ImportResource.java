@@ -202,7 +202,7 @@ public class ImportResource
                 // look at whether making this return a sequence deals with it lazily
                 NodesParser nodesParser = new NodesParser( new File( nodesFileLocation ), nodesFileType );
 
-                Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes( nodesParser );
+                Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes(sequence(nodesParser.extractNodes()));
 
                 List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ), relationshipsFileType ).relationships();
 

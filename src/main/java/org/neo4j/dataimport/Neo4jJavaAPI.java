@@ -6,11 +6,7 @@ import java.util.Map;
 
 import com.googlecode.totallylazy.Sequence;
 
-import org.neo4j.graphdb.DynamicRelationshipType;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 
 public class Neo4jJavaAPI implements Neo4jServer
 {
@@ -24,19 +20,26 @@ public class Neo4jJavaAPI implements Neo4jServer
     }
 
     @Override
-    public Map<String, Long> importNodes( NodesParser nodesParser )
+    public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
     {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
 
         Transaction tx = db.beginTx();
 
-        for ( Map<String, Object> row : nodesParser.extractNodes() )
+        for ( Map<String, Object> row : nodes )
         {
-            Node node = db.createNode();
+            Node node;
+            if(row.get("label").equals("")) {
+                node = db.createNode();
+            } else {
+                node = db.createNode(DynamicLabel.label(row.get("label").toString()));
+            }
 
             for ( Map.Entry<String, Object> property : row.entrySet() )
             {
-                node.setProperty( property.getKey(), property.getValue() );
+                if(!property.getKey().equals("label")){
+                    node.setProperty( property.getKey(), property.getValue() );
+                }
             }
 
             nodeMappings.put(row.get("id").toString(), node.getId());

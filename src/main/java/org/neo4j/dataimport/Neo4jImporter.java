@@ -1,6 +1,5 @@
 package org.neo4j.dataimport;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -60,7 +59,7 @@ public class Neo4jImporter
         System.out.println( "Importing data into your neo4j database..." );
 
         System.out.println( "Importing nodes..." );
-        Map<String, Long> nodeMappingIds = neo4jServer.importNodes( nodesParser );
+        Map<String, Long> nodeMappingIds = neo4jServer.importNodes(sequence(nodesParser.extractNodes()));
 
         System.out.println( "Importing relationships..." );
         neo4jServer.importRelationships( sequence( relationshipsParser.relationships() ), nodeMappingIds );

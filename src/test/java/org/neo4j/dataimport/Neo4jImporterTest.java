@@ -1,7 +1,6 @@
 package org.neo4j.dataimport;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
@@ -19,6 +18,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.neo4j.dataimport.DataCreator.*;
 
 public class Neo4jImporterTest {
     @Before
@@ -166,29 +166,6 @@ public class Neo4jImporterTest {
                 accept( MediaType.APPLICATION_JSON).
                 entity(cypherQuery, MediaType.APPLICATION_JSON).
                 post(ClientResponse.class);
-    }
-
-    private Map<String, Object> relationship(String from, String to, String type) {
-        Map<String, Object> relationship = new HashMap<String, Object>();
-        relationship.put("from", from);
-        relationship.put("to", to);
-        relationship.put("type", type);
-        return relationship;
-    }
-
-    private Map<String, Object> nodeWithLabel(String id, String name, String label) {
-        Map<String, Object> node = new HashMap<String, Object>();
-        node.put("id", id);
-        node.put("name", name);
-        node.put("label", label);
-        return node;
-    }
-
-    private Map<String, Object> nodeWithoutLabel(String id, String name) {
-        Map<String, Object> node = new HashMap<String, Object>();
-        node.put("id", id);
-        node.put("name", name);
-        return node;
     }
 
     private static Client jerseyClient() {
