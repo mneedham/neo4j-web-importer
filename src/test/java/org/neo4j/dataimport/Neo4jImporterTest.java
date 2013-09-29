@@ -1,5 +1,7 @@
 package org.neo4j.dataimport;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,12 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.server.CommunityNeoServer;
+import org.neo4j.server.WrappingNeoServer;
+import org.neo4j.server.configuration.PropertyFileConfigurator;
+import org.neo4j.server.configuration.ServerConfigurator;
+import org.neo4j.test.ImpermanentGraphDatabase;
 
 import static junit.framework.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -22,7 +30,16 @@ import static org.neo4j.dataimport.DataCreator.*;
 
 public class Neo4jImporterTest {
     @Before
-    public void clearDb() {
+    public void clearDb() throws IOException {
+        GraphDatabaseAPI db = new ImpermanentGraphDatabase();
+
+        ServerSocket s = new ServerSocket(0);
+        ServerConfigurator configurator = new ServerConfigurator(db);
+        configurator.configuration().addProperty("org.neo4j.server.webserver.port", s.getLocalPort());
+
+        WrappingNeoServer server = new WrappingNeoServer(db, configurator);
+        server.start();
+
         postCypherQuery(jerseyClient(), cypherQuery( "START n = node(*) MATCH n-[r?]-m DELETE m,r,n" ) );
     }
 
