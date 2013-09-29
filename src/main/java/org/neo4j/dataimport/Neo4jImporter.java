@@ -3,10 +3,10 @@ package org.neo4j.dataimport;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import javax.inject.Inject;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import javax.inject.Inject;
 import io.airlift.command.Command;
 import io.airlift.command.Option;
 import io.airlift.command.SingleCommand;

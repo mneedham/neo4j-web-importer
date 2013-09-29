@@ -6,7 +6,7 @@
   <version>0.0.1-SNAPSHOT</version>
 
   <properties>
-    <neo4j.version>1.9.3</neo4j.version>
+    <neo4j.version>2.0.0-M05</neo4j.version>
   </properties>
 
   <dependencies>
