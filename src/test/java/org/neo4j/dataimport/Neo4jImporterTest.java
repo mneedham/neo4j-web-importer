@@ -95,14 +95,42 @@ public class Neo4jImporterTest {
         String query = " START n = node(*)";
         query       += " RETURN n.name, n.label";
 
+        JsonNode rows = postCypherQuery(client, cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
+
+        assertEquals(1, rows.size());
+        assertEquals("[\"Mark\",null]", rows.get(0).toString());
+    }
+
+    @Test
+    public void shouldImportWhenOnlySomeNodesHaveLabels() {
+        Client client = jerseyClient();
+
+        NodesParser nodesParser = mock(NodesParser.class);
+        RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
+
+        List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
+        nodes.add(nodeWithLabel("1", "Mark", "Person"));
+        nodes.add(nodeWithLabel("2", "OtherMark", ""));
+        when(nodesParser.extractNodes()).thenReturn(nodes);
+
+        List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
+
+        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
+
+        importer(client, nodesParser, relationshipsParser).run();
+
+        String query = " START n = node(*)";
+        query       += " RETURN n.name, labels(n)";
+
         ClientResponse clientResponse = postCypherQuery(client, cypherQuery( query ) );
 
         System.out.println( "clientResponse = " + clientResponse );
 
         JsonNode rows = clientResponse.getEntity(JsonNode.class).get("data");
 
-        assertEquals(1, rows.size());
-        assertEquals("[\"Mark\",null]", rows.get(0).toString());
+        assertEquals(2, rows.size());
+        assertEquals("[\"Mark\",[\"Person\"]]", rows.get(0).toString());
+        assertEquals("[\"OtherMark\",[]]", rows.get(1).toString());
     }
 
     @Test
@@ -125,11 +153,7 @@ public class Neo4jImporterTest {
         String query = " START n = node(*)";
         query       += " RETURN n.name";
 
-        ClientResponse clientResponse = postCypherQuery(client, cypherQuery( query ) );
-
-        System.out.println( "clientResponse = " + clientResponse );
-
-        JsonNode rows = clientResponse.getEntity(JsonNode.class).get("data");
+        JsonNode rows = postCypherQuery(client, cypherQuery( query ) ).getEntity(JsonNode.class).get("data");
 
         assertEquals(1, rows.size());
         assertEquals("[\"Mark\"]", rows.get(0).toString());
