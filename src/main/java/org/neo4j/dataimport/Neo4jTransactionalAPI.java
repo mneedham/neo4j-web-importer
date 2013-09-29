@@ -50,7 +50,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
 
     public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
     {
-        Map<String, Long> nodeMappings = new HashMap<String, Long>();
+        Map<String, Long> nodeMappings = org.mapdb.DBMaker.newTempTreeMap();
         Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(Functions.label());
 
         for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )

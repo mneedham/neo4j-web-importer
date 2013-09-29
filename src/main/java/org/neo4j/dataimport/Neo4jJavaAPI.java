@@ -3,12 +3,15 @@ package org.neo4j.dataimport;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 import com.googlecode.totallylazy.Callable1;
 import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Sequence;
 
 import org.neo4j.graphdb.*;
+
+import static org.neo4j.dataimport.Functions.*;
 
 public class Neo4jJavaAPI implements Neo4jServer
 {
@@ -24,9 +27,9 @@ public class Neo4jJavaAPI implements Neo4jServer
     @Override
     public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
     {
-        Map<String, Long> nodeMappings = new HashMap<String, Long>();
+        Map<String, Long> nodeMappings = org.mapdb.DBMaker.newTempTreeMap();
 
-        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(Functions.label());
+        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(label());
 
         for (Group<String, Map<String, Object>> labelAndNodes : nodesByLabel) {
             Transaction tx = db.beginTx();
