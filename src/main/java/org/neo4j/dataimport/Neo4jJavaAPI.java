@@ -26,26 +26,14 @@ public class Neo4jJavaAPI implements Neo4jServer
     {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
 
-        Sequence<Group<Object,Map<String,Object>>> nodesByLabel = nodes.groupBy(label());
+        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(Functions.label());
 
-        for (Group<Object, Map<String, Object>> labelAndNodes : nodesByLabel) {
+        for (Group<String, Map<String, Object>> labelAndNodes : nodesByLabel) {
             Transaction tx = db.beginTx();
             for ( Map<String, Object> row : labelAndNodes )
             {
-                Node node;
-                if(labelAndNodes.key().equals("")) {
-                    node = db.createNode();
-                } else {
-                    node = db.createNode(DynamicLabel.label(labelAndNodes.key().toString()));
-                }
-
-                for ( Map.Entry<String, Object> property : row.entrySet() )
-                {
-                    if(!property.getKey().equals("label")){
-                        node.setProperty( property.getKey(), property.getValue() );
-                    }
-                }
-
+                Node node = createNode(labelAndNodes.key());
+                setPropertiesExcludingLabel(row, node);
                 nodeMappings.put(row.get("id").toString(), node.getId());
             }
 
@@ -57,17 +45,23 @@ public class Neo4jJavaAPI implements Neo4jServer
         return nodeMappings;
     }
 
-    private Callable1<Map<String, Object>, Object> label() {
-        return new Callable1<Map<String, Object>, Object>() {
-            @Override
-            public Object call(Map<String, Object> stringObjectMap) throws Exception {
-                Object label = stringObjectMap.get("label");
-                if(label == null) {
-                    return "";
-                }
-                return label.toString();
+    private Node createNode(Object label) {
+        Node node;
+        if(label.equals("")) {
+            node = db.createNode();
+        } else {
+            node = db.createNode(DynamicLabel.label(label.toString()));
+        }
+        return node;
+    }
+
+    private void setPropertiesExcludingLabel(Map<String, Object> row, Node node) {
+        for ( Map.Entry<String, Object> property : row.entrySet() )
+        {
+            if(!property.getKey().equals("label")){
+                node.setProperty( property.getKey(), property.getValue() );
             }
-        };
+        }
     }
 
     @Override

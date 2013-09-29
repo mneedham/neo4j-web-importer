@@ -51,7 +51,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
     {
         Map<String, Long> nodeMappings = new HashMap<String, Long>();
-        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(label());
+        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(Functions.label());
 
         for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )
         {
@@ -95,25 +95,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
             }
         }
 
-
-
         return nodeMappings;
-    }
-
-    private Callable1<Map<String, Object>, String> label()
-    {
-        return new Callable1<Map<String, Object>, String>()
-        {
-            @Override
-            public String call( Map<String, Object> row ) throws Exception
-            {
-                Object label = row.get("label");
-                if(label == null ) {
-                    return "";
-                }
-                return label.toString();
-            }
-        };
     }
 
 
