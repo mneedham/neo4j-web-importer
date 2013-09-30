@@ -17,7 +17,6 @@ import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
-import static com.googlecode.totallylazy.Sequences.sequence;
 import static com.googlecode.totallylazy.numbers.Numbers.range;
 
 public class Neo4jTransactionalAPI implements  Neo4jServer {
@@ -68,7 +67,6 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                     accept( MediaType.APPLICATION_JSON ).
                     entity( cypherQuery, MediaType.APPLICATION_JSON ).
                     post( ClientResponse.class );
-
 
             for (JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" )) {
                 ArrayNode  mapping = (ArrayNode) mappingAsJsonNode;
