@@ -22,6 +22,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.googlecode.totallylazy.Option;
 import com.googlecode.totallylazy.Pair;
 import com.googlecode.totallylazy.Predicate;
 import com.googlecode.totallylazy.Sequence;
@@ -55,9 +56,9 @@ public class ImportResource
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/nodes")
-    public Response uploadNodesFile(@QueryParam(value = "correlationId") String correlationId,
-                                    @FormDataParam("nodes") InputStream inputStream,
-                                    @FormDataParam("nodes") FormDataContentDisposition fileDetails) throws IOException
+    public Response uploadNodesFile( @QueryParam(value = "correlationId") String correlationId,
+                                     @FormDataParam("nodes") InputStream inputStream,
+                                     @FormDataParam("nodes") FormDataContentDisposition fileDetails ) throws IOException
     {
 
 
@@ -67,7 +68,7 @@ public class ImportResource
         Pair<FileType, Integer> fileType = FileInvestigator.mostLikelyFileType( header );
         ObjectNode fileUploadResponse = buildResponse( fileLocation, header, fileType );
 
-        String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
+        String response = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
         return Response.status( 200 ).entity( response ).type( MediaType.APPLICATION_JSON ).build();
     }
 
@@ -75,9 +76,10 @@ public class ImportResource
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/relationships")
-    public Response uploadRelationshipsFile(@QueryParam(value = "correlationId") String correlationId,
-                                    @FormDataParam("relationships") InputStream inputStream,
-                                    @FormDataParam("relationships") FormDataContentDisposition fileDetails) throws
+    public Response uploadRelationshipsFile( @QueryParam(value = "correlationId") String correlationId,
+                                             @FormDataParam("relationships") InputStream inputStream,
+                                             @FormDataParam("relationships") FormDataContentDisposition fileDetails )
+            throws
             IOException
     {
         String fileLocation = uploadFile( correlationId, inputStream, fileDetails );
@@ -86,7 +88,7 @@ public class ImportResource
         Pair<FileType, Integer> fileType = FileInvestigator.mostLikelyFileType( header );
         ObjectNode fileUploadResponse = buildResponse( fileLocation, header, fileType );
 
-        String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
+        String response = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString( fileUploadResponse );
         return Response.status( 200 ).entity( response ).type( MediaType.APPLICATION_JSON ).build();
     }
 
@@ -106,7 +108,7 @@ public class ImportResource
         String fileLocation = uploadFileLocation( fileDetails, importDirectory );
         FileHelper.writeToFile( inputStream, fileLocation );
 
-        return new File(fileLocation).getAbsolutePath();
+        return new File( fileLocation ).getAbsolutePath();
 
     }
 
@@ -119,7 +121,7 @@ public class ImportResource
         System.out.println( "correlationId = " + correlationId );
 
         JsonNode jobStatus = runningJobs.get( correlationId ).toJson();
-        String response = new ObjectMapper(  ).writerWithDefaultPrettyPrinter().writeValueAsString( jobStatus );
+        String response = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString( jobStatus );
 
         return Response.ok().entity( response ).type( MediaType.APPLICATION_JSON ).build();
     }
@@ -130,22 +132,41 @@ public class ImportResource
     public Response process( @QueryParam(value = "correlationId") String correlationId,
                              @QueryParam(value = "files") String filesAsString ) throws IOException
     {
-        File importDirectory = createImportDirectory( correlationId );
+        try
+        {
+            File importDirectory = createImportDirectory( correlationId );
+            Sequence<JsonNode> files = sequence( new ObjectMapper().readTree( filesAsString ) );
 
-        Sequence<JsonNode> files = sequence( new ObjectMapper().readTree( filesAsString ) );
+            JsonNode nodeFile = files.find( isNodeCSVFile() ).get();
+            FileType nodesFileType = FileType.valueOf( nodeFile.get( "type" ).asText() );
+            String nodesFileLocation = importDirectory.getPath() + "/" + nodeFile.get( "name" ).asText();
 
-        JsonNode nodeFile = files.find( isNodeCSVFile() ).get();
-        FileType nodesFileType = FileType.valueOf( nodeFile.get( "type" ).asText() );
-        String nodesFileLocation = importDirectory.getPath() + "/" + nodeFile.get( "name" ).asText();
+            Option<JsonNode> potentialRelationshipFile = files.find( isRelationshipCSVFile() );
+            if ( !potentialRelationshipFile.isEmpty() )
+            {
+                JsonNode relationshipFile = potentialRelationshipFile.get();
+                FileType relationshipsFileType = FileType.valueOf( relationshipFile.get( "type" ).asText() );
+                String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipFile.get( "name" ).asText();
 
-        JsonNode relationshipFile = files.find( isRelationshipCSVFile() ).get();
-        FileType relationshipsFileType = FileType.valueOf( relationshipFile.get( "type" ).asText() );
-        String relationshipsFileLocation = importDirectory.getPath() + "/" + relationshipFile.get( "name" ).asText();
+                CSVImportJob job = new CSVImportJob( correlationId, nodesFileLocation, relationshipsFileLocation,
+                        nodesFileType, relationshipsFileType );
+                executor.execute( job );
 
-        CSVImportJob job = new CSVImportJob( correlationId, nodesFileLocation, relationshipsFileLocation, nodesFileType, relationshipsFileType );
-        executor.execute( job );
-
-        return Response.created( URI.create( "http://localhost:7474/tools/import/status/" + correlationId ) ).build();
+                return Response
+                        .created( URI.create( "http://localhost:7474/tools/import/status/" + correlationId ) )
+                        .build();
+            }
+            else
+            {
+                return Response.status( Response.Status.BAD_REQUEST ).entity( "No relationships file specified" ).build();
+            }
+        }
+        catch ( Exception e )
+        {
+            StringWriter writer = new StringWriter();
+            e.printStackTrace( new PrintWriter( writer ) );
+            return Response.serverError().entity( writer.toString() ).build();
+        }
     }
 
     private Predicate<JsonNode> isNodeCSVFile()
@@ -200,9 +221,10 @@ public class ImportResource
                 // look at whether making this return a sequence deals with it lazily
                 NodesParser nodesParser = new NodesParser( new File( nodesFileLocation ), nodesFileType );
 
-                Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes(sequence(nodesParser.extractNodes()));
+                Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes( sequence( nodesParser.extractNodes() ) );
 
-                List<Map<String, Object>> relationships = new RelationshipsParser( new File( relationshipsFileLocation ), relationshipsFileType ).relationships();
+                List<Map<String, Object>> relationships = new RelationshipsParser( new File(
+                        relationshipsFileLocation ), relationshipsFileType ).relationships();
 
                 neo4jJavaAPI.importRelationships( sequence( relationships ), nodeMappings );
             }
@@ -216,15 +238,17 @@ public class ImportResource
             }
         }
 
-        public JsonNode toJson() {
+        public JsonNode toJson()
+        {
             ObjectNode root = JsonNodeFactory.instance.objectNode();
-            root.put("correlationId", correlationId);
-            root.put("finished", finished);
+            root.put( "correlationId", correlationId );
+            root.put( "finished", finished );
 
-            if(exception != null) {
+            if ( exception != null )
+            {
                 StringWriter writer = new StringWriter();
                 exception.printStackTrace( new PrintWriter( writer ) );
-                root.put("exception", writer.toString());
+                root.put( "exception", writer.toString() );
             }
 
             return root;
@@ -240,13 +264,13 @@ public class ImportResource
             @FormDataParam("relationships") InputStream relationshipsInputStream,
             @FormDataParam("relationships") FormDataContentDisposition relationshipsFilesDetails )
     {
-        File importDirectory = createImportDirectory( String.valueOf(System.currentTimeMillis() ));
+        File importDirectory = createImportDirectory( String.valueOf( System.currentTimeMillis() ) );
 
         String nodesFileLocation = uploadFileLocation( nodesFilesDetails, importDirectory );
-        FileHelper.writeToFile(nodesInputStream, nodesFileLocation);
+        FileHelper.writeToFile( nodesInputStream, nodesFileLocation );
 
         String relationshipsFileLocation = uploadFileLocation( relationshipsFilesDetails, importDirectory );
-        FileHelper.writeToFile(relationshipsInputStream, relationshipsFileLocation);
+        FileHelper.writeToFile( relationshipsInputStream, relationshipsFileLocation );
 
         // look at whether making this return a sequence deals with it lazily
 //        run( nodesFileLocation, relationshipsFileLocation );
@@ -257,7 +281,8 @@ public class ImportResource
 
     private File createImportDirectory( String folderExtension )
     {
-        File importDirectory = new File( ((GraphDatabaseAPI) database).getStoreDir() + "/../import/" + folderExtension );
+        File importDirectory = new File( ((GraphDatabaseAPI) database).getStoreDir() + "/../import/" +
+                folderExtension );
         importDirectory.mkdir();
         return importDirectory;
     }

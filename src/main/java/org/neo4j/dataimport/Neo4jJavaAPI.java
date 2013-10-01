@@ -74,11 +74,11 @@ public class Neo4jJavaAPI implements Neo4jServer
         int numberOfRelationshipsToImport = relationships.size();
 
         for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {
-            Sequence<Map<String, Object>> batchRels = relationships.drop( i ).take( batchSize );
+            Sequence<Map<String, Object>> batchedRelationships = relationships.drop( i ).take( batchSize );
 
             Transaction tx = db.beginTx();
 
-            for (Map<String, Object> properties : batchRels) {
+            for (Map<String, Object> properties : batchedRelationships) {
                 Node sourceNode = db.getNodeById(nodeIdMappings.get(properties.get("from").toString()));
                 Node destinationNode = db.getNodeById(nodeIdMappings.get(properties.get("to").toString()));
 
