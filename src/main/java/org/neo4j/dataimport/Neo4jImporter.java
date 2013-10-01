@@ -19,13 +19,13 @@ public class Neo4jImporter
     @Inject
     public io.airlift.command.HelpOption helpOption;
 
-    @Option(name = {"-c", "--commit"}, description = "number of relationships to commit in a transaction (default: 200)")
+    @Option(name = {"-c", "--commit"}, title="# rels to commit in a tx", description = "(default: 200)")
     private int batchSize = 200;
 
-    @Option(name = {"-n", "--nodesfile"}, description = "path to nodes file (default: nodes.csv)")
+    @Option(name = {"-n", "--nodesfile"}, title="Path to nodes file", description = "(default: nodes.csv)")
     private NodesParser nodesParser = new NodesParser( "nodes.csv" );
 
-    @Option(name = {"-r", "--relsfile"}, description = "path to relationships file (default: relationships.csv)")
+    @Option(name = {"-r", "--relsfile"}, title="Path to relationships file", description = "(default: relationships.csv)")
     private RelationshipsParser relationshipsParser = new RelationshipsParser( "relationships.csv" );
 
     @Option(name = {"-db"}, description = "host:port of neo4j server (default: http://localhost:7474)")

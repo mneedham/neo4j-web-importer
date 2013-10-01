@@ -40,8 +40,6 @@ import static com.googlecode.totallylazy.Sequences.sequence;
 @Path("/import")
 public class ImportResource
 {
-
-
     private final GraphDatabaseService database;
     private final Neo4jJavaAPI neo4jJavaAPI;
     private final Executor executor = Executors.newSingleThreadExecutor();
