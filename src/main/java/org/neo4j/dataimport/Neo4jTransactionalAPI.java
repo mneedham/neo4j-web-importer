@@ -125,10 +125,11 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeMappings )
     {
         System.out.println( "Importing relationships in batches of " + batchSize );
-        int numberOfRelationshipsToImport  = 0;
+        int numberOfRelationshipsImported  = 0;
 
         Sequence<Map<String, Object>> batchOfRelationships;
         while(!(batchOfRelationships = relationships.take(batchSize)).isEmpty()) {
+            long startOfBatch = System.currentTimeMillis();
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();
             ArrayNode statements = JsonNodeFactory.instance.arrayNode();
@@ -142,6 +143,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
             query.put( "statements", statements );
             building.add( System.currentTimeMillis() - beforeBuildingQuery );
+            System.out.println("building: " + (System.currentTimeMillis() - beforeBuildingQuery));
 
             long beforePosting = System.currentTimeMillis();
 
@@ -151,14 +153,17 @@ public class Neo4jTransactionalAPI implements Neo4jServer
                     header( "X-Stream", true ).
                     post( ClientResponse.class );
             querying.add( System.currentTimeMillis() - beforePosting );
-            System.out.print( "." );
+            System.out.println("querying: " + (System.currentTimeMillis() - beforePosting));
 
-            numberOfRelationshipsToImport += batchSize;
+            System.out.print( "." );
+            System.out.println(System.currentTimeMillis() - startOfBatch);
+
+            numberOfRelationshipsImported += batchSize;
             relationships = relationships.drop(batchSize);
         }
 
         System.out.println();
-        System.out.println( "Total relationships imported: " + numberOfRelationshipsToImport );
+        System.out.println( "Total relationships imported: " + numberOfRelationshipsImported );
     }
 
 
