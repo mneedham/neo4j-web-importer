@@ -55,9 +55,9 @@ public class NodesParser
                 nodes.add(node);
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            throw new RuntimeException( e );
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException( e );
         }
 
         return nodes;
@@ -66,5 +66,15 @@ public class NodesParser
     public String header() throws IOException
     {
         return new BufferedReader(new FileReader( path )).readLine();
+    }
+
+    public void checkFileExists()
+    {
+        try {
+            new CSVReader(new FileReader( path ), fileType.separator());
+            System.out.println( "Using nodes file ["  + path + "]" );
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Could not find nodes file", e );
+        }
     }
 }

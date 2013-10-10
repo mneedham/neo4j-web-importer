@@ -56,12 +56,11 @@ public class Neo4jImporter
             neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation );
         }
 
-        System.out.println( "Importing data into your neo4j database..." );
+        nodesParser.checkFileExists();
+        relationshipsParser.checkFileExists();
 
-        System.out.println( "Importing nodes..." );
+
         Map<String, Long> nodeMappingIds = neo4jServer.importNodes(sequence(nodesParser.extractNodes()));
-
-        System.out.println( "Importing relationships..." );
         neo4jServer.importRelationships( sequence( relationshipsParser.relationships() ), nodeMappingIds );
     }
 

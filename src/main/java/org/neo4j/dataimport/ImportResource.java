@@ -150,6 +150,7 @@ public class ImportResource
 
                 CSVImportJob job = new CSVImportJob( correlationId, nodesFileLocation, relationshipsFileLocation,
                         nodesFileType, relationshipsFileType );
+
                 executor.execute( job );
 
                 return Response

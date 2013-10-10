@@ -48,6 +48,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
 
     public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
     {
+        System.out.println( "Importing nodes..." );
         Map<String, Long> nodeMappings = org.mapdb.DBMaker.newTempTreeMap();
         Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(Functions.label());
 
@@ -73,6 +74,7 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                 nodeMappings.put(mapping.get(0).asText(), mapping.get(1).asLong());
             }
         }
+        System.out.println( "Total nodes imported: " + nodeMappings.size());
 
         return nodeMappings;
     }
@@ -103,11 +105,8 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
 
     public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeMappings )
     {
+        System.out.println( "Importing relationships in batches of " + batchSize );
         int numberOfRelationshipsToImport = relationships.size();
-
-        System.out.println( "batchSize = " + batchSize );
-        System.out.println( "batchWithinBatchSize = " + batchWithinBatchSize );
-
         for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {
             Sequence<Map<String, Object>> batchRels = relationships.drop( i ).take( batchSize );
 
@@ -132,7 +131,10 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                     header( "X-Stream", true ).
                     post( ClientResponse.class );
             querying.add(System.currentTimeMillis()  - beforePosting);
+            System.out.print( "." );
         }
+        System.out.println(  );
+        System.out.println("Total relationships imported: " + numberOfRelationshipsToImport);
     }
 
 

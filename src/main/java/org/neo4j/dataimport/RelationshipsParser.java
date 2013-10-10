@@ -65,4 +65,14 @@ public class RelationshipsParser
     {
         return new BufferedReader(new FileReader(relationshipsPath)).readLine();
     }
+
+    public void checkFileExists()
+    {
+        try {
+            new CSVReader(new FileReader( relationshipsPath ), fileType.separator());
+            System.out.println( "Using relationships file ["  + relationshipsPath + "]" );
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Could not find relationships file", e );
+        }
+    }
 }
