@@ -127,6 +127,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
         int numberOfRelationshipsToImport = relationships.size();
         for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize )
         {
+            long startOfBatch = System.currentTimeMillis();
             Sequence<Map<String, Object>> batchOfRelationships = relationships.drop( i ).take( batchSize );
 
             long beforeBuildingQuery = System.currentTimeMillis();
@@ -152,6 +153,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
                     post( ClientResponse.class );
             querying.add( System.currentTimeMillis() - beforePosting );
             System.out.print( "." );
+            System.out.println(System.currentTimeMillis() - startOfBatch);
         }
         System.out.println();
         System.out.println( "Total relationships imported: " + numberOfRelationshipsToImport );
