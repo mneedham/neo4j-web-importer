@@ -19,11 +19,14 @@ import org.codehaus.jackson.node.ObjectNode;
 
 import static com.googlecode.totallylazy.numbers.Numbers.range;
 
-public class Neo4jTransactionalAPI implements  Neo4jServer {
+public class Neo4jTransactionalAPI implements Neo4jServer
+{
     private static final String NODE_LOOKUP = "node%s = node({%s}), node%s=node({%s})";
     private static final String CREATE_RELATIONSHIP = " CREATE %s-[:%s]->%s";
-    private static final String CREATE_NODE = "CREATE (node {properties}) SET node :%s RETURN node.id, ID(node) AS nodeId";
-    private static final String CREATE_NODE_WITHOUT_LABEL = "CREATE (node {properties}) RETURN node.id, ID(node) AS nodeId";
+    private static final String CREATE_NODE = "CREATE (node {properties}) SET node :%s RETURN node.id, " +
+            "ID(node) AS nodeId";
+    private static final String CREATE_NODE_WITHOUT_LABEL = "CREATE (node {properties}) RETURN node.id, " +
+            "ID(node) AS nodeId";
     private static final String CYPHER_URI = "%s/db/data/cypher";
     private static final String TRANSACTIONAL_URI = "%s/db/data/transaction/commit";
 
@@ -31,9 +34,9 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     private int batchSize;
     private int batchWithinBatchSize;
 
-    private List<Long> building = new ArrayList<Long>(  );
-    private List<Long> querying = new ArrayList<Long>(  );
-    private final  String cypherUri;
+    private List<Long> building = new ArrayList<Long>();
+    private List<Long> querying = new ArrayList<Long>();
+    private final String cypherUri;
     private final String transactionalUri;
 
     public Neo4jTransactionalAPI( Client client, int batchSize, int batchWithinBatchSize, String neo4jServerLocation )
@@ -42,62 +45,77 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
         this.batchWithinBatchSize = batchWithinBatchSize;
         this.client = client;
 
-        cypherUri = String.format(CYPHER_URI, neo4jServerLocation);
-        transactionalUri = String.format( TRANSACTIONAL_URI, neo4jServerLocation);
+        cypherUri = String.format( CYPHER_URI, neo4jServerLocation );
+        transactionalUri = String.format( TRANSACTIONAL_URI, neo4jServerLocation );
     }
 
-    public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
+    public Map<String, Long> importNodes( Sequence<Map<String, Object>> nodes )
     {
-        System.out.println( "Importing nodes..." );
+        int nodeBatchSize = 10000;
+        System.out.println( "Importing nodes in batches of " + nodeBatchSize );
         Map<String, Long> nodeMappings = org.mapdb.DBMaker.newTempTreeMap();
-        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(Functions.label());
+        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy( Functions.label() );
 
         for ( Group<String, Map<String, Object>> labelAndNodes : nodesByLabel )
         {
-            ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
+            int size = labelAndNodes.size();
+            for ( int i = 0; i < size; i += nodeBatchSize )
+            {
+                ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
 
-            if(labelAndNodes.key().equals("")) {
-                cypherQuery.put( "query", CREATE_NODE_WITHOUT_LABEL);
-            } else {
-                cypherQuery.put( "query", String.format(CREATE_NODE, labelAndNodes.key()) );
+                if ( labelAndNodes.key().equals( "" ) )
+                {
+                    cypherQuery.put( "query", CREATE_NODE_WITHOUT_LABEL );
+                }
+                else
+                {
+                    cypherQuery.put( "query", String.format( CREATE_NODE, labelAndNodes.key() ) );
+                }
+
+                cypherQuery.put( "params", createProperties( createParams( labelAndNodes.drop(i).take(nodeBatchSize) ) ) );
+
+                ClientResponse clientResponse = client.resource( cypherUri ).
+                        accept( MediaType.APPLICATION_JSON ).
+                        entity( cypherQuery, MediaType.APPLICATION_JSON ).
+                        post( ClientResponse.class );
+
+                for ( JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" ) )
+                {
+                    ArrayNode mapping = (ArrayNode) mappingAsJsonNode;
+                    nodeMappings.put( mapping.get( 0 ).asText(), mapping.get( 1 ).asLong() );
+                }
+                System.out.print( "." );
             }
 
-            cypherQuery.put( "params", createProperties(createParams(labelAndNodes)));
 
-            ClientResponse clientResponse = client.resource( cypherUri ).
-                    accept( MediaType.APPLICATION_JSON ).
-                    entity( cypherQuery, MediaType.APPLICATION_JSON ).
-                    post( ClientResponse.class );
-
-            for (JsonNode mappingAsJsonNode : clientResponse.getEntity( JsonNode.class ).get( "data" )) {
-                ArrayNode  mapping = (ArrayNode) mappingAsJsonNode;
-                nodeMappings.put(mapping.get(0).asText(), mapping.get(1).asLong());
-            }
         }
-        System.out.println( "Total nodes imported: " + nodeMappings.size());
+        System.out.println( );
+        System.out.println( "Total nodes imported: " + nodeMappings.size() );
 
         return nodeMappings;
     }
 
-    private ObjectNode createProperties(ArrayNode params) {
+    private ObjectNode createProperties( ArrayNode params )
+    {
         ObjectNode properties = JsonNodeFactory.instance.objectNode();
-        properties.put( "properties", params);
+        properties.put( "properties", params );
         return properties;
     }
 
-    private ArrayNode createParams(Group<String, Map<String, Object>> labelAndNodes) {
+    private ArrayNode createParams( Sequence<Map<String, Object>> labelAndNodes )
+    {
         ArrayNode params = JsonNodeFactory.instance.arrayNode();
         for ( Map<String, Object> row : labelAndNodes )
         {
-            row.remove("label");
+            row.remove( "label" );
 
             ObjectNode jsonRow = JsonNodeFactory.instance.objectNode();
-            for (Map.Entry<String, Object> property : row.entrySet())
+            for ( Map.Entry<String, Object> property : row.entrySet() )
             {
-                jsonRow.put(property.getKey(), property.getValue().toString());
+                jsonRow.put( property.getKey(), property.getValue().toString() );
             }
 
-            params.add(jsonRow);
+            params.add( jsonRow );
         }
         return params;
     }
@@ -107,21 +125,23 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
     {
         System.out.println( "Importing relationships in batches of " + batchSize );
         int numberOfRelationshipsToImport = relationships.size();
-        for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {
-            Sequence<Map<String, Object>> batchRels = relationships.drop( i ).take( batchSize );
+        for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize )
+        {
+            Sequence<Map<String, Object>> batchOfRelationships = relationships.drop( i ).take( batchSize );
 
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();
             ArrayNode statements = JsonNodeFactory.instance.arrayNode();
             for ( int j = 0; j < batchSize; j += batchWithinBatchSize )
             {
-                final Sequence<Map<String, Object>> relationshipsBatch = batchRels.drop( j ).take( batchWithinBatchSize );
+                final Sequence<Map<String, Object>> relationshipsBatch = batchOfRelationships.drop( j ).take(
+                        batchWithinBatchSize );
                 ObjectNode statement = createStatement( relationshipsBatch, nodeMappings );
                 statements.add( statement );
             }
 
             query.put( "statements", statements );
-            building.add(System.currentTimeMillis() - beforeBuildingQuery);
+            building.add( System.currentTimeMillis() - beforeBuildingQuery );
 
             long beforePosting = System.currentTimeMillis();
 
@@ -130,11 +150,11 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
                     entity( query, MediaType.APPLICATION_JSON ).
                     header( "X-Stream", true ).
                     post( ClientResponse.class );
-            querying.add(System.currentTimeMillis()  - beforePosting);
+            querying.add( System.currentTimeMillis() - beforePosting );
             System.out.print( "." );
         }
-        System.out.println(  );
-        System.out.println("Total relationships imported: " + numberOfRelationshipsToImport);
+        System.out.println();
+        System.out.println( "Total relationships imported: " + numberOfRelationshipsToImport );
     }
 
 
@@ -145,7 +165,8 @@ public class Neo4jTransactionalAPI implements  Neo4jServer {
 
         ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
         cypherQuery.put( "statement", createQuery( relationships, nodePairs ) );
-        cypherQuery.put( "parameters", createParametersFrom( nodeParameterMappings( nodePairs.zip( relationships ), nodeIdMappings ) ) );
+        cypherQuery.put( "parameters", createParametersFrom( nodeParameterMappings( nodePairs.zip( relationships ),
+                nodeIdMappings ) ) );
         return cypherQuery;
     }
 
