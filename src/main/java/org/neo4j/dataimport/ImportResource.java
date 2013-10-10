@@ -224,10 +224,10 @@ public class ImportResource
 
                 Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes( sequence( nodesParser.extractNodes() ) );
 
-                List<Map<String, Object>> relationships = new RelationshipsParser( new File(
+                Sequence<Map<String, Object>> relationships = new RelationshipsParser( new File(
                         relationshipsFileLocation ), relationshipsFileType ).relationships();
 
-                neo4jJavaAPI.importRelationships( sequence( relationships ), nodeMappings );
+                neo4jJavaAPI.importRelationships( relationships , nodeMappings );
             }
             catch ( Exception e )
             {

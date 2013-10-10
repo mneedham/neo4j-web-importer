@@ -56,12 +56,12 @@ public class Neo4jImporter
             neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation );
         }
 
-        nodesParser.checkFileExists();
-        relationshipsParser.checkFileExists();
+//        nodesParser.checkFileExists();
+//        relationshipsParser.checkFileExists();
 
 
         Map<String, Long> nodeMappingIds = neo4jServer.importNodes(sequence(nodesParser.extractNodes()));
-        neo4jServer.importRelationships( sequence( relationshipsParser.relationships() ), nodeMappingIds );
+        neo4jServer.importRelationships( relationshipsParser.relationships(), nodeMappingIds );
     }
 
     public static void main( String[] args ) throws IOException

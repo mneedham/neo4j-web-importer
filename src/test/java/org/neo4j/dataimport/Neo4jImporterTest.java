@@ -21,6 +21,7 @@ import org.neo4j.server.WrappingNeoServer;
 import org.neo4j.server.configuration.ServerConfigurator;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
+import static com.googlecode.totallylazy.Sequences.sequence;
 import static junit.framework.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,7 +64,7 @@ public class Neo4jImporterTest {
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
         relationshipsProperties.add(relationship("1", "2", "FRIEND_OF"));
         relationshipsProperties.add(relationship("2", "3", "FRIEND_OF"));
-        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties);
+        when( relationshipsParser.relationships()).thenReturn(sequence(relationshipsProperties));
 
         // when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();
@@ -89,7 +90,7 @@ public class Neo4jImporterTest {
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-        when( relationshipsParser.relationships()).thenReturn(new ArrayList<Map<String, Object>>());
+        when( relationshipsParser.relationships()).thenReturn(sequence(new ArrayList<Map<String, Object>>()));
 
         //when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();
@@ -113,7 +114,7 @@ public class Neo4jImporterTest {
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
-        when( relationshipsParser.relationships()).thenReturn( relationshipsProperties );
+        when( relationshipsParser.relationships()).thenReturn( sequence(relationshipsProperties ));
 
         //when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();
@@ -137,7 +138,7 @@ public class Neo4jImporterTest {
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-        when( relationshipsParser.relationships()).thenReturn(new ArrayList<Map<String, Object>>());
+        when( relationshipsParser.relationships()).thenReturn(sequence(new ArrayList<Map<String, Object>>()));
 
         // when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();

@@ -9,6 +9,7 @@ import com.googlecode.totallylazy.Callable1;
 import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Pair;
 import com.googlecode.totallylazy.Sequence;
+import com.googlecode.totallylazy.Sequences;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.lang.StringUtils;
@@ -124,11 +125,10 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeMappings )
     {
         System.out.println( "Importing relationships in batches of " + batchSize );
-        int numberOfRelationshipsToImport = relationships.size();
-        for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize )
-        {
-            Sequence<Map<String, Object>> batchOfRelationships = relationships.drop( i ).take( batchSize );
+        int numberOfRelationshipsToImport  = 0;
 
+        Sequence<Map<String, Object>> batchOfRelationships;
+        while(!(batchOfRelationships = relationships.take(batchSize)).isEmpty()) {
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();
             ArrayNode statements = JsonNodeFactory.instance.arrayNode();
@@ -152,7 +152,11 @@ public class Neo4jTransactionalAPI implements Neo4jServer
                     post( ClientResponse.class );
             querying.add( System.currentTimeMillis() - beforePosting );
             System.out.print( "." );
+
+            numberOfRelationshipsToImport += batchSize;
+            relationships = relationships.drop(batchSize);
         }
+
         System.out.println();
         System.out.println( "Total relationships imported: " + numberOfRelationshipsToImport );
     }

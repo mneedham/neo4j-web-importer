@@ -11,8 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVReader;
+import com.googlecode.totallylazy.Function;
+import com.googlecode.totallylazy.Sequence;
+import com.googlecode.totallylazy.Sequences;
 
 import static java.util.Arrays.asList;
+
+import static com.googlecode.totallylazy.Predicates.notNullValue;
 
 public class RelationshipsParser
 {
@@ -33,32 +38,70 @@ public class RelationshipsParser
         this.fileType = fileType;
     }
 
-    public List<Map<String, Object>> relationships() {
-        List<Map<String, Object>> relationships = new ArrayList<Map<String, Object>>();
-
-        try {
-            CSVReader reader = new CSVReader(new FileReader(relationshipsPath), fileType.separator());
-
-            String[] header = reader.readNext();
-            if (header == null || !asList(header).contains("from") || !asList(header).contains("to") || !asList(header).contains("type") ) {
-                throw new RuntimeException("No header line found or 'from', 'to', 'type' fields missing in relationships file");
-            }
-
-            String[] nextLine;
-            while ((nextLine = reader.readNext()) != null) {
-                Map<String, Object> relationship = new HashMap<String, Object>();
-                for(int i=0; i < nextLine.length; i++) {
-                    relationship.put(header[i], nextLine[i]);
+    public static Function<Map<String, Object>> readLine( final CSVReader reader, final String[] fields ) {
+        return new Function<Map<String, Object>>() {
+            public Map<String, Object> call() throws Exception {
+                String[] result = reader.readNext();
+                if (result == null) {
+                    reader.close();
+                    return null;
                 }
-                relationships.add(relationship);
+                Map<String, Object> relationship = new HashMap<String, Object>();
+                for(int i=0; i < result.length; i++) {
+                    relationship.put(fields[i], result[i]);
+                }
+                return relationship;
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        };
+    }
+
+    public Sequence<Map<String, Object>> relationships() {
+        try
+        {
+            FileReader reader = new FileReader( relationshipsPath );
+            String[] fields = fields();
+            return Sequences.repeat(readLine(new CSVReader( reader, fileType.separator()), fields)).drop(1).takeWhile(notNullValue(Map.class)).memorise();
+        }
+        catch ( FileNotFoundException e )
+        {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            return Sequences.empty();
+        }
+        catch ( IOException e )
+        {
+            return Sequences.empty();
         }
 
-        return relationships;
+//        List<Map<String, Object>> relationships = new ArrayList<Map<String, Object>>();
+//
+//        try {
+//            CSVReader reader = new CSVReader(new FileReader(relationshipsPath), fileType.separator());
+//
+//            String[] header = reader.readNext();
+//            if (header == null || !asList(header).contains("from") || !asList(header).contains("to") || !asList(header).contains("type") ) {
+//                throw new RuntimeException("No header line found or 'from', 'to', 'type' fields missing in relationships file");
+//            }
+//
+//            String[] nextLine;
+//            while ((nextLine = reader.readNext()) != null) {
+//                Map<String, Object> relationship = new HashMap<String, Object>();
+//                for(int i=0; i < nextLine.length; i++) {
+//                    relationship.put(header[i], nextLine[i]);
+//                }
+//                relationships.add(relationship);
+//            }
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        return relationships;
+    }
+
+    public String[] fields() throws IOException
+    {
+        return new CSVReader(new FileReader( relationshipsPath ), fileType.separator()).readNext();
     }
 
     public String header() throws IOException
