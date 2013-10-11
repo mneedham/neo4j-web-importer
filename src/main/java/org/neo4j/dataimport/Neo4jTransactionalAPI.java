@@ -166,14 +166,13 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     {
         System.out.println( "Importing relationships in batches of " + batchSize );
 
-        int count = 0;
-
         ObjectNode root = JsonNodeFactory.instance.objectNode();
         ArrayNode statements = JsonNodeFactory.instance.arrayNode();
         root.put( "statements", statements );
 
+        int numberProcessed = 0;
         while(relationships.hasNext()) {
-            count ++;
+            numberProcessed ++;
             Map<String, Object> relationship = relationships.next();
 
             ObjectNode statement = JsonNodeFactory.instance.objectNode();
@@ -182,7 +181,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
             statements.add( statement );
 
-            if(count % batchSize == 0) {
+            if(numberProcessed % batchSize == 0) {
                 postTransaction( root, statements );
             }
         }
