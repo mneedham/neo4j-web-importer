@@ -56,8 +56,8 @@ public class Neo4jImporter
             neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation );
         }
 
-//        nodesParser.checkFileExists();
-//        relationshipsParser.checkFileExists();
+        nodesParser.checkFileExists();
+        relationshipsParser.checkFileExists();
 
 
         Map<String, Long> nodeMappingIds = neo4jServer.importNodes(sequence(nodesParser.extractNodes()));
