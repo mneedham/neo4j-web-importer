@@ -26,25 +26,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.dataimport.DataCreator.*;
 
-public class Neo4jImporterTest {
-    private String hostPort;
-
-    @Before
-    public void clearDb() throws IOException {
-        GraphDatabaseAPI db = new ImpermanentGraphDatabase();
-
-//        ServerSocket s = new ServerSocket(0);
-//        ServerConfigurator configurator = new ServerConfigurator(db);
-//        int localPort = s.getLocalPort();
-//        configurator.configuration().addProperty("org.neo4j.server.webserver.port", localPort );
-
-
-//        WrappingNeoServer server = new WrappingNeoServer(db, configurator);
-//        server.start();
-
-        hostPort = "http://localhost:" + "7474";
-        postCypherQuery(jerseyClient(), cypherQuery( "START n = node(*) MATCH n-[r?]-m DELETE m,r,n" ) );
-    }
+public class Neo4jImporterTest extends RestServerTestBase {
+    private String hostPort = "http://localhost:" + PORT;
 
     @Test
     public void shouldImportTwoNodesWithLabelsAndARelationshipBetweenThem() throws IOException
