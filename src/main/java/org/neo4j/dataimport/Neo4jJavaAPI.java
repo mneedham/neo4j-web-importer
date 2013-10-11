@@ -9,6 +9,9 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import com.googlecode.totallylazy.Callable1;
 import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Sequence;
+import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.JsonNodeFactory;
+import org.codehaus.jackson.node.ObjectNode;
 
 import org.neo4j.graphdb.*;
 
@@ -42,7 +45,7 @@ public class Neo4jJavaAPI implements Neo4jServer
             }
 
             tx.success();
-            tx.finish();
+            tx.close();
         }
 
 
@@ -69,35 +72,39 @@ public class Neo4jJavaAPI implements Neo4jServer
     }
 
     @Override
-    public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
+    public void importRelationships( Iterator<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
     {
-        // this will blow up with big rel sizes
-        int numberOfRelationshipsToImport = relationships.size();
+        System.out.println( "Importing relationships in batches of " + batchSize );
 
-        for ( int i = 0; i < numberOfRelationshipsToImport; i += batchSize ) {
-            Sequence<Map<String, Object>> batchedRelationships = relationships.drop( i ).take( batchSize );
+        int numberProcessed = 0;
 
-            Transaction tx = db.beginTx();
+        Transaction tx = db.beginTx();
 
-            for (Map<String, Object> properties : batchedRelationships) {
-                Node sourceNode = db.getNodeById(nodeIdMappings.get(properties.get("from").toString()));
-                Node destinationNode = db.getNodeById(nodeIdMappings.get(properties.get("to").toString()));
+        while(relationships.hasNext()) {
+            numberProcessed ++;
+            Map<String, Object> properties = relationships.next();
 
-                Relationship relationship = sourceNode.createRelationshipTo(destinationNode, DynamicRelationshipType.withName(properties.get("type").toString()));
-                for (Map.Entry<String, Object> property : properties.entrySet()) {
-                    relationship.setProperty(property.getKey(), property.getValue());
-                }
+            Node sourceNode = db.getNodeById(nodeIdMappings.get(properties.get("from").toString()));
+            Node destinationNode = db.getNodeById(nodeIdMappings.get(properties.get("to").toString()));
+
+            DynamicRelationshipType relationshipType = DynamicRelationshipType.withName( properties.get( "type" ).toString() );
+            Relationship relationship = sourceNode.createRelationshipTo(destinationNode, relationshipType );
+            for (Map.Entry<String, Object> property : properties.entrySet()) {
+                String key = property.getKey();
+                if( key.equals( "from" ) || key.equals( "to" ) || key.equals( "type" ))  continue;
+
+                relationship.setProperty( key, property.getValue());
             }
 
-            tx.success();
-            tx.finish();
+            if(numberProcessed % batchSize == 0) {
+                tx.success(); tx.close();
+                tx = db.beginTx();
+            }
         }
-    }
 
-    @Override
-    public void importRelationships2( Iterator<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
-    {
-        //To change body of implemented methods use File | Settings | File Templates.
+        tx.success(); tx.close();
+
+        System.out.println();
     }
 
 

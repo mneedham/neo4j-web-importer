@@ -1,8 +1,9 @@
 package org.neo4j.dataimport;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
@@ -17,8 +18,6 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.kernel.GraphDatabaseAPI;
-import org.neo4j.server.WrappingNeoServer;
-import org.neo4j.server.configuration.ServerConfigurator;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import static com.googlecode.totallylazy.Sequences.sequence;
@@ -48,7 +47,8 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void shouldImportTwoNodesWithLabelsAndARelationshipBetweenThem() {
+    public void shouldImportTwoNodesWithLabelsAndARelationshipBetweenThem() throws IOException
+    {
         //given
         NodesParser nodesParser = mock(NodesParser.class);
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
@@ -64,7 +64,7 @@ public class Neo4jImporterTest {
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
         relationshipsProperties.add(relationship("1", "2", "FRIEND_OF"));
         relationshipsProperties.add(relationship("2", "3", "FRIEND_OF"));
-        when( relationshipsParser.relationships()).thenReturn(sequence(relationshipsProperties));
+        when( relationshipsParser.relationships()).thenReturn( relationshipsProperties.iterator());
 
         // when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();
@@ -82,7 +82,8 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void shouldNotImportLabelAsAPropertyOnANode() {
+    public void shouldNotImportLabelAsAPropertyOnANode() throws IOException
+    {
         // given
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add( nodeWithLabel( "1", "Mark", "Person" ) );
@@ -90,7 +91,7 @@ public class Neo4jImporterTest {
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-        when( relationshipsParser.relationships()).thenReturn(sequence(new ArrayList<Map<String, Object>>()));
+        when( relationshipsParser.relationships()).thenReturn( emptyIterator() );
 
         //when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();
@@ -103,8 +104,14 @@ public class Neo4jImporterTest {
         assertEquals("[\"Mark\",null]", rows.get(0).toString());
     }
 
+    private Iterator<Map<String, Object>> emptyIterator()
+    {
+        return Collections.<Map<String, Object>>emptyList().iterator();
+    }
+
     @Test
-    public void shouldImportWhenOnlySomeNodesHaveLabels() {
+    public void shouldImportWhenOnlySomeNodesHaveLabels() throws IOException
+    {
         // given
         NodesParser nodesParser = mock(NodesParser.class);
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
@@ -114,7 +121,7 @@ public class Neo4jImporterTest {
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
-        when( relationshipsParser.relationships()).thenReturn( sequence(relationshipsProperties ));
+        when( relationshipsParser.relationships()).thenReturn(relationshipsProperties.iterator());
 
         //when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();
@@ -130,7 +137,8 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void shouldImportNodesWithoutLabel() {
+    public void shouldImportNodesWithoutLabel() throws IOException
+    {
         // given
         NodesParser nodesParser = mock(NodesParser.class);
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
@@ -138,7 +146,7 @@ public class Neo4jImporterTest {
         when(nodesParser.extractNodes()).thenReturn(nodes);
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
-        when( relationshipsParser.relationships()).thenReturn(sequence(new ArrayList<Map<String, Object>>()));
+        when( relationshipsParser.relationships()).thenReturn(emptyIterator());
 
         // when
         importer(jerseyClient(), nodesParser, relationshipsParser ).run();

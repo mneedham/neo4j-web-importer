@@ -125,44 +125,8 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     }
 
 
-    public void importRelationships( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeMappings )
-    {
-        System.out.println( "Importing relationships in batches of " + batchSize );
-        int numberOfRelationshipsImported  = 0;
-
-        List<Map<String, Object>> batchOfRelationships;
-
-        while(!(batchOfRelationships = relationships.drop(numberOfRelationshipsImported).take(batchSize).toList()).isEmpty()) {
-            ObjectNode query = JsonNodeFactory.instance.objectNode();
-            ArrayNode statements = JsonNodeFactory.instance.arrayNode();
-            for ( int j = 0; j < batchSize; j += batchWithinBatchSize )
-            {
-                final List<Map<String, Object>> relationshipsBatch = sequence(batchOfRelationships).drop( j ).take(
-                        batchWithinBatchSize ).toList();
-
-                ObjectNode statement = createStatement( relationshipsBatch, nodeMappings );
-                statements.add( statement );
-            }
-
-            query.put( "statements", statements );
-
-            client.resource( transactionalUri ).
-                    accept( MediaType.APPLICATION_JSON ).
-                    entity( query, MediaType.APPLICATION_JSON ).
-                    header( "X-Stream", true ).
-                    post( ClientResponse.class );
-
-            numberOfRelationshipsImported += batchSize;
-
-            System.out.print( "." );
-        }
-
-        System.out.println();
-        System.out.println( "Total relationships imported: " + numberOfRelationshipsImported );
-    }
-
     @Override
-    public void importRelationships2( Iterator<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
+    public void importRelationships( Iterator<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
     {
         System.out.println( "Importing relationships in batches of " + batchSize );
 

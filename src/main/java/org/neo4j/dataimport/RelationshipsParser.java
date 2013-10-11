@@ -5,17 +5,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.googlecode.totallylazy.Function;
-import com.googlecode.totallylazy.Sequence;
-import com.googlecode.totallylazy.Sequences;
-
-import static com.googlecode.totallylazy.Predicates.notNullValue;
 
 public class RelationshipsParser
 {
@@ -38,43 +32,15 @@ public class RelationshipsParser
         this.fileType = fileType;
     }
 
-    public static Function<Map<String, Object>> readLine( final CSVReader reader, final String[] fields )
-    {
-        return new Function<Map<String, Object>>()
-        {
-            public Map<String, Object> call() throws Exception
-            {
-                String[] result = reader.readNext();
-
-                if ( result == null )
-                {
-                    reader.close();
-                    return null;
-                }
-
-                Map<String, Object> relationship = new HashMap<String, Object>();
-                for ( int i = 0; i < result.length; i++ )
-                {
-                    relationship.put( fields[i], result[i] );
-                }
-
-                return relationship;
-            }
-        };
-    }
-
-    public Iterator<Map<String, Object>> relationships2() throws IOException
+    public Iterator<Map<String, Object>> relationships() throws IOException
     {
         FileReader reader = new FileReader( relationshipsPath );
 
         final CSVReader csvReader = new CSVReader( new BufferedReader( reader ), fileType.separator() );
         final String[] fields = csvReader.readNext();
-        final Map<String, Object> relationship = new LinkedHashMap<String, Object>();
 
-        for ( String field : fields )
-        {
-            relationship.put( field, null );
-        }
+        final Map<String, Object> properties = new LinkedHashMap<String, Object>();
+        initialiseAsNull( properties, fields );
 
         return new Iterator<Map<String, Object>>()
         {
@@ -90,7 +56,7 @@ public class RelationshipsParser
             public Map<String, Object> next()
             {
                 int i = 0;
-                for ( Map.Entry<String, Object> row : relationship.entrySet() )
+                for ( Map.Entry<String, Object> row : properties.entrySet() )
                 {
                     row.setValue( data[i++] );
                 }
@@ -104,7 +70,7 @@ public class RelationshipsParser
                     data = null;
                 }
 
-                return relationship;
+                return properties;
             }
 
             @Override
@@ -115,30 +81,14 @@ public class RelationshipsParser
         };
     }
 
-    public Sequence<Map<String, Object>> relationships()
+    private void initialiseAsNull( Map<String, Object> relationship, String[] fields )
     {
-        try
+        for ( String field : fields )
         {
-            FileReader reader = new FileReader( relationshipsPath );
-            String[] fields = fields();
-
-            return Sequences.repeat( readLine( new CSVReader( new BufferedReader( reader ), fileType.separator() ),
-                    fields ) ).drop( 1 ).takeWhile( notNullValue( Map.class ) ).memorise();
-        }
-        catch ( FileNotFoundException e )
-        {
-            return Sequences.empty();
-        }
-        catch ( IOException e )
-        {
-            return Sequences.empty();
+            relationship.put( field, null );
         }
     }
 
-    public String[] fields() throws IOException
-    {
-        return new CSVReader( new FileReader( relationshipsPath ), fileType.separator() ).readNext();
-    }
 
     public String header() throws IOException
     {

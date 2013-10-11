@@ -7,7 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -224,7 +224,7 @@ public class ImportResource
 
                 Map<String, Long> nodeMappings = neo4jJavaAPI.importNodes( sequence( nodesParser.extractNodes() ) );
 
-                Sequence<Map<String, Object>> relationships = new RelationshipsParser( new File(
+                Iterator<Map<String, Object>> relationships = new RelationshipsParser( new File(
                         relationshipsFileLocation ), relationshipsFileType ).relationships();
 
                 neo4jJavaAPI.importRelationships( relationships , nodeMappings );
