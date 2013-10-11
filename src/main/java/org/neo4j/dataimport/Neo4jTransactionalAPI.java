@@ -18,6 +18,7 @@ import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
+import static com.googlecode.totallylazy.Sequences.sequence;
 import static com.googlecode.totallylazy.numbers.Numbers.range;
 
 public class Neo4jTransactionalAPI implements Neo4jServer
@@ -127,8 +128,8 @@ public class Neo4jTransactionalAPI implements Neo4jServer
         System.out.println( "Importing relationships in batches of " + batchSize );
         int numberOfRelationshipsImported  = 0;
 
-        Sequence<Map<String, Object>> batchOfRelationships;
-        while(!(batchOfRelationships = relationships.take(batchSize)).isEmpty()) {
+        List<Map<String, Object>> batchOfRelationships;
+        while(!(batchOfRelationships = relationships.take(batchSize).toList()).isEmpty()) {
             long startOfBatch = System.currentTimeMillis();
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();
@@ -136,17 +137,19 @@ public class Neo4jTransactionalAPI implements Neo4jServer
             for ( int j = 0; j < batchSize; j += batchWithinBatchSize )
             {
                 long beforeBatch = System.currentTimeMillis();
-                final Sequence<Map<String, Object>> relationshipsBatch = batchOfRelationships.drop( j ).take(
-                        batchWithinBatchSize );
+                final List<Map<String, Object>> relationshipsBatch = sequence(batchOfRelationships).drop( j ).take(
+                        batchWithinBatchSize ).toList();
+//                System.out.println("creating batch: " + (System.currentTimeMillis() - beforeBatch));
 
+                long beforeStatement = System.currentTimeMillis();
                 ObjectNode statement = createStatement( relationshipsBatch, nodeMappings );
-                System.out.println("creating statement: " + (System.currentTimeMillis() - beforeBatch));
+//                System.out.println("creating statement: " + (System.currentTimeMillis() - beforeStatement));
                 statements.add( statement );
             }
 
             query.put( "statements", statements );
             building.add( System.currentTimeMillis() - beforeBuildingQuery );
-            System.out.println("building: " + (System.currentTimeMillis() - beforeBuildingQuery));
+//            System.out.println("building: " + (System.currentTimeMillis() - beforeBuildingQuery));
 
             long beforePosting = System.currentTimeMillis();
 
@@ -156,10 +159,10 @@ public class Neo4jTransactionalAPI implements Neo4jServer
                     header( "X-Stream", true ).
                     post( ClientResponse.class );
             querying.add( System.currentTimeMillis() - beforePosting );
-            System.out.println("querying: " + (System.currentTimeMillis() - beforePosting));
+//            System.out.println("querying: " + (System.currentTimeMillis() - beforePosting));
 
             System.out.print( "." );
-            System.out.println(System.currentTimeMillis() - startOfBatch);
+//            System.out.println(System.currentTimeMillis() - startOfBatch);
 
             numberOfRelationshipsImported += batchSize;
             relationships = relationships.drop(batchSize);
@@ -170,39 +173,39 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     }
 
 
-    private ObjectNode createStatement( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
+    private ObjectNode createStatement( List<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
     {
         long beforeStatement = System.currentTimeMillis();
         int numberOfNodes = batchSize * 2;
         Sequence<Pair<Number, Number>> nodePairs = range( 1, numberOfNodes - 1, 2 ).zip( range( 2, numberOfNodes, 2 ) );
-        System.out.println("nodePairs: " + (System.currentTimeMillis() - beforeStatement));
+//        System.out.println("nodePairs: " + (System.currentTimeMillis() - beforeStatement));
 
         long beforeQuery = System.currentTimeMillis();
         ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
         String query = createQuery( relationships, nodePairs );
         cypherQuery.put( "statement", query );
-        System.out.println("createQuery: " + (System.currentTimeMillis() - beforeQuery));
+//        System.out.println("createQuery: " + (System.currentTimeMillis() - beforeQuery));
 
         long beforeParams = System.currentTimeMillis();
         cypherQuery.put( "parameters", createParametersFrom( nodeParameterMappings( nodePairs.zip( relationships ),
                 nodeIdMappings ) ) );
-        System.out.println("params: " + (System.currentTimeMillis() - beforeParams));
+//        System.out.println("params: " + (System.currentTimeMillis() - beforeParams));
 
         return cypherQuery;
     }
 
-    private String createQuery( Sequence<Map<String, Object>> relationships, Sequence<Pair<Number, Number>> nodePairs )
+    private String createQuery( List<Map<String, Object>> relationships, Sequence<Pair<Number, Number>> nodePairs )
     {
         String query = "START ";
         long beforePairs = System.currentTimeMillis();
         query += StringUtils.join( nodePairs.zip( relationships ).map( nodeLookup() ).iterator(), ", " );
-        System.out.println( "relationships = " + relationships );
-        System.out.println( "nodePairs = " + nodePairs );
-        System.out.println("pairs: " + (System.currentTimeMillis() - beforePairs));
+//        System.out.println( "relationships = " + relationships );
+//        System.out.println( "nodePairs = " + nodePairs );
+//        System.out.println("pairs: " + (System.currentTimeMillis() - beforePairs));
 
         long beforeRels = System.currentTimeMillis();
-        query += StringUtils.join( relationships.zip( nodePairs ).map( createRelationship() ).iterator(), " " );
-        System.out.println("rels: " + (System.currentTimeMillis() - beforeRels));
+        query += StringUtils.join( sequence(relationships).zip( nodePairs ).map( createRelationship() ).iterator(), " " );
+//        System.out.println("rels: " + (System.currentTimeMillis() - beforeRels));
 
         return query;
     }
