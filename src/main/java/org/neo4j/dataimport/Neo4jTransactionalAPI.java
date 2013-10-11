@@ -40,9 +40,11 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     private List<Long> querying = new ArrayList<Long>();
     private final String cypherUri;
     private final String transactionalUri;
+    private int nodeBatchSize;
 
-    public Neo4jTransactionalAPI( Client client, int batchSize, int batchWithinBatchSize, String neo4jServerLocation )
+    public Neo4jTransactionalAPI( Client client, int batchSize, int batchWithinBatchSize, String neo4jServerLocation, int nodeBatchSize )
     {
+        this. nodeBatchSize = nodeBatchSize;
         this.batchSize = batchSize;
         this.batchWithinBatchSize = batchWithinBatchSize;
         this.client = client;
@@ -53,7 +55,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
     public Map<String, Long> importNodes( Sequence<Map<String, Object>> nodes )
     {
-        int nodeBatchSize = 10000;
+
         System.out.println( "Importing nodes in batches of " + nodeBatchSize );
         Map<String, Long> nodeMappings = org.mapdb.DBMaker.newTempTreeMap();
         Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy( Functions.label() );
@@ -74,7 +76,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
                     cypherQuery.put( "query", String.format( CREATE_NODE, labelAndNodes.key() ) );
                 }
 
-                cypherQuery.put( "params", createProperties( createParams( labelAndNodes.drop(i).take(nodeBatchSize) ) ) );
+                cypherQuery.put( "params", createProperties( createParams( labelAndNodes.drop(i).take( nodeBatchSize ) ) ) );
 
                 ClientResponse clientResponse = client.resource( cypherUri ).
                         accept( MediaType.APPLICATION_JSON ).
@@ -130,6 +132,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
         List<Map<String, Object>> batchOfRelationships;
         int toDrop = 0;
+
         while(!(batchOfRelationships = relationships.drop(toDrop).take(batchSize).toList()).isEmpty()) {
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();

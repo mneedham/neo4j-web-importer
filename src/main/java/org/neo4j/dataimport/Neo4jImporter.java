@@ -19,6 +19,9 @@ public class Neo4jImporter
     @Inject
     public io.airlift.command.HelpOption helpOption;
 
+    @Option(name = {"-nb", "--nodebatchsize"}, title="# nodes to commit in a tx", description = "(default: 10000)")
+    private int nodeBatchSize = 10000;
+
     @Option(name = {"-c", "--commit"}, title="# rels to commit in a tx", description = "(default: 200)")
     private int batchSize = 200;
 
@@ -30,7 +33,6 @@ public class Neo4jImporter
 
     @Option(name = {"-db"}, description = "host:port of neo4j server (default: http://localhost:7474)")
     private String neo4jServerLocation = "http://localhost:7474";
-
     private Neo4jServer neo4jServer;
 
 
@@ -53,7 +55,7 @@ public class Neo4jImporter
     {
         if ( neo4jServer == null )
         {
-            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation );
+            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation, nodeBatchSize );
         }
 
         nodesParser.checkFileExists();

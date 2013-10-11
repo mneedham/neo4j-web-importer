@@ -154,7 +154,7 @@ public class Neo4jImporterTest {
 
     private Neo4jImporter importer( Client client, NodesParser nodesParser, RelationshipsParser relationshipsParser ) {
         return new Neo4jImporter(nodesParser, relationshipsParser, 1, hostPort,
-                new Neo4jTransactionalAPI(client, 1, 1, hostPort));
+                new Neo4jTransactionalAPI(client, 1, 1, hostPort, 1));
     }
 
     private ObjectNode cypherQuery( String query )
