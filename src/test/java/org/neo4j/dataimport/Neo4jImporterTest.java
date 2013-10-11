@@ -15,10 +15,7 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
-import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.kernel.GraphDatabaseAPI;
-import org.neo4j.test.ImpermanentGraphDatabase;
 
 import static com.googlecode.totallylazy.Sequences.sequence;
 import static junit.framework.Assert.assertEquals;
@@ -144,8 +141,8 @@ public class Neo4jImporterTest extends RestServerTestBase {
     }
 
     private Neo4jImporter importer( Client client, NodesParser nodesParser, RelationshipsParser relationshipsParser ) {
-        return new Neo4jImporter(nodesParser, relationshipsParser, 1, hostPort,
-                new Neo4jTransactionalAPI(client, 1, 1, hostPort, 1));
+        return new Neo4jImporter(nodesParser, relationshipsParser,
+                new Neo4jTransactionalAPI(client, 1, hostPort, 1));
     }
 
     private ObjectNode cypherQuery( String query )

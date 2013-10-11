@@ -34,7 +34,6 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
     private Client client;
     private int batchSize;
-    private int batchWithinBatchSize;
 
     private List<Long> building = new ArrayList<Long>();
     private List<Long> querying = new ArrayList<Long>();
@@ -42,11 +41,10 @@ public class Neo4jTransactionalAPI implements Neo4jServer
     private final String transactionalUri;
     private int nodeBatchSize;
 
-    public Neo4jTransactionalAPI( Client client, int batchSize, int batchWithinBatchSize, String neo4jServerLocation, int nodeBatchSize )
+    public Neo4jTransactionalAPI( Client client, int batchSize, String neo4jServerLocation, int nodeBatchSize )
     {
         this. nodeBatchSize = nodeBatchSize;
         this.batchSize = batchSize;
-        this.batchWithinBatchSize = batchWithinBatchSize;
         this.client = client;
 
         cypherUri = String.format( CYPHER_URI, neo4jServerLocation );

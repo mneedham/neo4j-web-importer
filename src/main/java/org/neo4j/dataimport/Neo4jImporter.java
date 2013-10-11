@@ -41,21 +41,17 @@ public class Neo4jImporter
         // needed by airline
     }
 
-    public Neo4jImporter( NodesParser nodesParser, RelationshipsParser relationshipsParser, int batchSize,
-                          String neo4jServerLocation, Neo4jServer neo4jServer )
+    public Neo4jImporter( NodesParser nodesParser, RelationshipsParser relationshipsParser, Neo4jServer neo4jServer )
     {
         this.nodesParser = nodesParser;
         this.relationshipsParser = relationshipsParser;
-        this.batchSize = batchSize;
-        this.neo4jServerLocation = neo4jServerLocation;
         this.neo4jServer = neo4jServer;
     }
 
     public void run()
     {
-        if ( neo4jServer == null )
-        {
-            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, 200, neo4jServerLocation, nodeBatchSize );
+        if(neo4jServer == null) {
+            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, neo4jServerLocation, nodeBatchSize );
         }
 
         nodesParser.checkFileExists();
