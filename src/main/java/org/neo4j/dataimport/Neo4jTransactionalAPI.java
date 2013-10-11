@@ -135,9 +135,12 @@ public class Neo4jTransactionalAPI implements Neo4jServer
             ArrayNode statements = JsonNodeFactory.instance.arrayNode();
             for ( int j = 0; j < batchSize; j += batchWithinBatchSize )
             {
+                long beforeBatch = System.currentTimeMillis();
                 final Sequence<Map<String, Object>> relationshipsBatch = batchOfRelationships.drop( j ).take(
                         batchWithinBatchSize );
+
                 ObjectNode statement = createStatement( relationshipsBatch, nodeMappings );
+                System.out.println("creating statement: " + (System.currentTimeMillis() - beforeBatch));
                 statements.add( statement );
             }
 
@@ -169,21 +172,38 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
     private ObjectNode createStatement( Sequence<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
     {
+        long beforeStatement = System.currentTimeMillis();
         int numberOfNodes = batchSize * 2;
         Sequence<Pair<Number, Number>> nodePairs = range( 1, numberOfNodes - 1, 2 ).zip( range( 2, numberOfNodes, 2 ) );
+        System.out.println("nodePairs: " + (System.currentTimeMillis() - beforeStatement));
 
+        long beforeQuery = System.currentTimeMillis();
         ObjectNode cypherQuery = JsonNodeFactory.instance.objectNode();
-        cypherQuery.put( "statement", createQuery( relationships, nodePairs ) );
+        String query = createQuery( relationships, nodePairs );
+        cypherQuery.put( "statement", query );
+        System.out.println("createQuery: " + (System.currentTimeMillis() - beforeQuery));
+
+        long beforeParams = System.currentTimeMillis();
         cypherQuery.put( "parameters", createParametersFrom( nodeParameterMappings( nodePairs.zip( relationships ),
                 nodeIdMappings ) ) );
+        System.out.println("params: " + (System.currentTimeMillis() - beforeParams));
+
         return cypherQuery;
     }
 
     private String createQuery( Sequence<Map<String, Object>> relationships, Sequence<Pair<Number, Number>> nodePairs )
     {
         String query = "START ";
+        long beforePairs = System.currentTimeMillis();
         query += StringUtils.join( nodePairs.zip( relationships ).map( nodeLookup() ).iterator(), ", " );
+        System.out.println( "relationships = " + relationships );
+        System.out.println( "nodePairs = " + nodePairs );
+        System.out.println("pairs: " + (System.currentTimeMillis() - beforePairs));
+
+        long beforeRels = System.currentTimeMillis();
         query += StringUtils.join( relationships.zip( nodePairs ).map( createRelationship() ).iterator(), " " );
+        System.out.println("rels: " + (System.currentTimeMillis() - beforeRels));
+
         return query;
     }
 
