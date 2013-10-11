@@ -129,7 +129,8 @@ public class Neo4jTransactionalAPI implements Neo4jServer
         int numberOfRelationshipsImported  = 0;
 
         List<Map<String, Object>> batchOfRelationships;
-        while(!(batchOfRelationships = relationships.take(batchSize).toList()).isEmpty()) {
+        int toDrop = 0;
+        while(!(batchOfRelationships = relationships.drop(toDrop).take(batchSize).toList()).isEmpty()) {
             long startOfBatch = System.currentTimeMillis();
             long beforeBuildingQuery = System.currentTimeMillis();
             ObjectNode query = JsonNodeFactory.instance.objectNode();
@@ -161,11 +162,12 @@ public class Neo4jTransactionalAPI implements Neo4jServer
             querying.add( System.currentTimeMillis() - beforePosting );
 //            System.out.println("querying: " + (System.currentTimeMillis() - beforePosting));
 
-            System.out.print( "." );
-            System.out.println(System.currentTimeMillis() - startOfBatch);
 
             numberOfRelationshipsImported += batchSize;
-            relationships = relationships.drop(batchSize);
+            toDrop += batchSize;
+
+            System.out.print( "." );
+            System.out.println( System.currentTimeMillis() - startOfBatch + " -> " + toDrop );
         }
 
         System.out.println();
