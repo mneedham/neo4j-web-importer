@@ -71,32 +71,6 @@ public class RelationshipsParser
         {
             return Sequences.empty();
         }
-
-//        List<Map<String, Object>> relationships = new ArrayList<Map<String, Object>>();
-//
-//        try {
-//            CSVReader reader = new CSVReader(new FileReader(relationshipsPath), fileType.separator());
-//
-//            String[] header = reader.readNext();
-//            if (header == null || !asList(header).contains("from") || !asList(header).contains("to") || !asList(header).contains("type") ) {
-//                throw new RuntimeException("No header line found or 'from', 'to', 'type' fields missing in relationships file");
-//            }
-//
-//            String[] nextLine;
-//            while ((nextLine = reader.readNext()) != null) {
-//                Map<String, Object> relationship = new HashMap<String, Object>();
-//                for(int i=0; i < nextLine.length; i++) {
-//                    relationship.put(header[i], nextLine[i]);
-//                }
-//                relationships.add(relationship);
-//            }
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//        return relationships;
     }
 
     public String[] fields() throws IOException
