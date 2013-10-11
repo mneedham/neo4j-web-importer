@@ -63,7 +63,14 @@ public class Neo4jImporter
 
 
         Map<String, Long> nodeMappingIds = neo4jServer.importNodes(sequence(nodesParser.extractNodes()));
-        neo4jServer.importRelationships( relationshipsParser.relationships(), nodeMappingIds );
+        try
+        {
+            neo4jServer.importRelationships2( relationshipsParser.relationships2(), nodeMappingIds );
+        }
+        catch ( IOException e )
+        {
+            e.printStackTrace();
+        }
     }
 
     public static void main( String[] args ) throws IOException

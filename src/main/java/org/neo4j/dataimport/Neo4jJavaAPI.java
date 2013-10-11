@@ -2,6 +2,7 @@ package org.neo4j.dataimport;
 
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 
@@ -91,6 +92,12 @@ public class Neo4jJavaAPI implements Neo4jServer
             tx.success();
             tx.finish();
         }
+    }
+
+    @Override
+    public void importRelationships2( Iterator<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
+    {
+        //To change body of implemented methods use File | Settings | File Templates.
     }
 
 

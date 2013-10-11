@@ -1,6 +1,7 @@
 package org.neo4j.dataimport;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.MediaType;
@@ -9,7 +10,6 @@ import com.googlecode.totallylazy.Callable1;
 import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Pair;
 import com.googlecode.totallylazy.Sequence;
-import com.googlecode.totallylazy.Sequences;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.lang.StringUtils;
@@ -131,10 +131,8 @@ public class Neo4jTransactionalAPI implements Neo4jServer
         int numberOfRelationshipsImported  = 0;
 
         List<Map<String, Object>> batchOfRelationships;
-        int toDrop = 0;
 
-        while(!(batchOfRelationships = relationships.drop(toDrop).take(batchSize).toList()).isEmpty()) {
-            long beforeBuildingQuery = System.currentTimeMillis();
+        while(!(batchOfRelationships = relationships.drop(numberOfRelationshipsImported).take(batchSize).toList()).isEmpty()) {
             ObjectNode query = JsonNodeFactory.instance.objectNode();
             ArrayNode statements = JsonNodeFactory.instance.arrayNode();
             for ( int j = 0; j < batchSize; j += batchWithinBatchSize )
@@ -147,26 +145,91 @@ public class Neo4jTransactionalAPI implements Neo4jServer
             }
 
             query.put( "statements", statements );
-            building.add( System.currentTimeMillis() - beforeBuildingQuery );
-
-            long beforePosting = System.currentTimeMillis();
 
             client.resource( transactionalUri ).
                     accept( MediaType.APPLICATION_JSON ).
                     entity( query, MediaType.APPLICATION_JSON ).
                     header( "X-Stream", true ).
                     post( ClientResponse.class );
-            querying.add( System.currentTimeMillis() - beforePosting );
-
 
             numberOfRelationshipsImported += batchSize;
-            toDrop += batchSize;
 
             System.out.print( "." );
         }
 
         System.out.println();
         System.out.println( "Total relationships imported: " + numberOfRelationshipsImported );
+    }
+
+    @Override
+    public void importRelationships2( Iterator<Map<String, Object>> relationships, Map<String, Long> nodeIdMappings )
+    {
+        System.out.println( "Importing relationships in batches of " + batchSize );
+
+        int count = 0;
+
+        ObjectNode root = JsonNodeFactory.instance.objectNode();
+        ArrayNode statements = JsonNodeFactory.instance.arrayNode();
+        root.put( "statements", statements );
+
+        while(relationships.hasNext()) {
+            count ++;
+            Map<String, Object> relationship = relationships.next();
+
+            ObjectNode statement = JsonNodeFactory.instance.objectNode();
+            statement.put( "statement", buildQuery( relationship ) );
+            statement.put( "parameters", buildParameters( nodeIdMappings, relationship ) );
+
+            statements.add( statement );
+
+            if(count % batchSize == 0) {
+                postTransaction( root, statements );
+            }
+        }
+
+        postTransaction( root, statements );
+
+        System.out.println();
+
+    }
+
+    private void postTransaction( ObjectNode root, ArrayNode statements )
+    {
+        client.resource( transactionalUri ).
+                accept( MediaType.APPLICATION_JSON ).
+                entity( root, MediaType.APPLICATION_JSON ).
+                header( "X-Stream", true ).
+                post( ClientResponse.class );
+
+        statements.removeAll();
+        System.out.print( "." );
+    }
+
+    private String buildQuery( Map<String, Object> relationship )
+    {
+        return String.format( "START node1 = node({1}), node2 = node({2}) CREATE node1-[:%s " +
+                "{relationshipProperties}]->node2",
+                relationship.get( "type" ) );
+    }
+
+    private ObjectNode buildParameters( Map<String, Long> nodeIdMappings, Map<String, Object> relationship )
+    {
+        ObjectNode parameters = JsonNodeFactory.instance.objectNode();
+        parameters.put( "1", nodeIdMappings.get( relationship.get( "from" ) ) );
+        parameters.put( "2", nodeIdMappings.get( relationship.get( "to" ) ) );
+
+
+        ObjectNode relationshipProperties = JsonNodeFactory.instance.objectNode();
+        relationship.remove("from");
+        relationship.remove("to");
+        relationship.remove("type");
+        for ( Map.Entry<String, Object> property : relationship.entrySet() )
+        {
+            relationshipProperties.put( property.getKey(), property.getValue().toString());
+        }
+
+        parameters.put( "relationshipProperties", relationshipProperties );
+        return parameters;
     }
 
 

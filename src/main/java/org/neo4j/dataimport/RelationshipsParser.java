@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -53,6 +54,51 @@ public class RelationshipsParser
                 }
 
                 return relationship;
+            }
+        };
+    }
+
+    public Iterator<Map<String, Object>> relationships2() throws IOException
+    {
+        FileReader reader = new FileReader( relationshipsPath );
+
+        final CSVReader csvReader = new CSVReader( new BufferedReader( reader ), fileType.separator() );
+        final String[] fields = csvReader.readNext();
+
+        return new Iterator<Map<String, Object>>()
+        {
+            String[] data = csvReader.readNext();
+
+            @Override
+            public boolean hasNext()
+            {
+                return data != null;
+            }
+
+            @Override
+            public Map<String, Object> next()
+            {
+                Map<String, Object> relationship = new HashMap<String, Object>();
+                for(int i=0; i < data.length; i++) {
+                    relationship.put(fields[i], data[i]);
+                }
+
+                try
+                {
+                    data = csvReader.readNext();
+                }
+                catch ( IOException e )
+                {
+                    data = null;
+                }
+
+                return relationship;
+            }
+
+            @Override
+            public void remove()
+            {
+                throw new UnsupportedOperationException(  );
             }
         };
     }
