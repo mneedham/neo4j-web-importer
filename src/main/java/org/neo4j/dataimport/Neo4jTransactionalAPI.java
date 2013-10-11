@@ -153,7 +153,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
                     post( ClientResponse.class );
             querying.add( System.currentTimeMillis() - beforePosting );
             System.out.print( "." );
-            System.out.println(System.currentTimeMillis() - startOfBatch);
+            System.out.println(System.currentTimeMillis() - startOfBatch + " -> " + i);
         }
         System.out.println();
         System.out.println( "Total relationships imported: " + numberOfRelationshipsToImport );
