@@ -38,19 +38,24 @@ public class RelationshipsParser
         this.fileType = fileType;
     }
 
-    public static Function<Map<String, Object>> readLine( final CSVReader reader, final String[] fields ) {
-        return new Function<Map<String, Object>>() {
-            public Map<String, Object> call() throws Exception {
+    public static Function<Map<String, Object>> readLine( final CSVReader reader, final String[] fields )
+    {
+        return new Function<Map<String, Object>>()
+        {
+            public Map<String, Object> call() throws Exception
+            {
                 String[] result = reader.readNext();
 
-                if (result == null) {
+                if ( result == null )
+                {
                     reader.close();
                     return null;
                 }
 
                 Map<String, Object> relationship = new HashMap<String, Object>();
-                for(int i=0; i < result.length; i++) {
-                    relationship.put(fields[i], result[i]);
+                for ( int i = 0; i < result.length; i++ )
+                {
+                    relationship.put( fields[i], result[i] );
                 }
 
                 return relationship;
@@ -64,6 +69,12 @@ public class RelationshipsParser
 
         final CSVReader csvReader = new CSVReader( new BufferedReader( reader ), fileType.separator() );
         final String[] fields = csvReader.readNext();
+        final Map<String, Object> relationship = new LinkedHashMap<String, Object>();
+
+        for ( String field : fields )
+        {
+            relationship.put( field, null );
+        }
 
         return new Iterator<Map<String, Object>>()
         {
@@ -78,9 +89,10 @@ public class RelationshipsParser
             @Override
             public Map<String, Object> next()
             {
-                Map<String, Object> relationship = new HashMap<String, Object>();
-                for(int i=0; i < data.length; i++) {
-                    relationship.put(fields[i], data[i]);
+                int i = 0;
+                for ( Map.Entry<String, Object> row : relationship.entrySet() )
+                {
+                    row.setValue( data[i++] );
                 }
 
                 try
@@ -98,7 +110,7 @@ public class RelationshipsParser
             @Override
             public void remove()
             {
-                throw new UnsupportedOperationException(  );
+                throw new UnsupportedOperationException();
             }
         };
     }

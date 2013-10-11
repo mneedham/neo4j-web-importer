@@ -220,12 +220,13 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
 
         ObjectNode relationshipProperties = JsonNodeFactory.instance.objectNode();
-        relationship.remove("from");
-        relationship.remove("to");
-        relationship.remove("type");
+
         for ( Map.Entry<String, Object> property : relationship.entrySet() )
         {
-            relationshipProperties.put( property.getKey(), property.getValue().toString());
+            String key = property.getKey();
+            if( key.equals( "from" ) || key.equals( "to" ) || key.equals( "type" ))  continue;
+
+            relationshipProperties.put( key, property.getValue().toString());
         }
 
         parameters.put( "relationshipProperties", relationshipProperties );
