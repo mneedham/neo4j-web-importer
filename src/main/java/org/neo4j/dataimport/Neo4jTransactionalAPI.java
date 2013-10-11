@@ -162,7 +162,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 //            System.out.println("querying: " + (System.currentTimeMillis() - beforePosting));
 
             System.out.print( "." );
-//            System.out.println(System.currentTimeMillis() - startOfBatch);
+            System.out.println(System.currentTimeMillis() - startOfBatch);
 
             numberOfRelationshipsImported += batchSize;
             relationships = relationships.drop(batchSize);
