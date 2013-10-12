@@ -49,7 +49,7 @@ public class ImportResource
     public ImportResource( @Context GraphDatabaseService database )
     {
         this.database = database;
-        this.neo4jJavaAPI = new Neo4jJavaAPI( database, 10000 );
+        this.neo4jJavaAPI = new Neo4jJavaAPI( database, 10000, 10000 );
     }
 
     @POST

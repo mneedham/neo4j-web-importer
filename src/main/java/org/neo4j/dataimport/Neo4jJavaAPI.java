@@ -15,11 +15,13 @@ public class Neo4jJavaAPI implements Neo4jServer
 {
     private final GraphDatabaseService db;
     private final int batchSize;
+    private int nodesBatchSize;
 
-    public Neo4jJavaAPI( GraphDatabaseService db, int batchSize )
+    public Neo4jJavaAPI( GraphDatabaseService db, int relationshipsBatchSize, int nodesBatchSize )
     {
         this.db = db;
-        this.batchSize = batchSize;
+        this.batchSize = relationshipsBatchSize;
+        this.nodesBatchSize = nodesBatchSize;
     }
 
     @Override
@@ -33,13 +35,11 @@ public class Neo4jJavaAPI implements Neo4jServer
             numberProcessed ++;
             Map<String, Object> properties = nodes.next();
 
-            System.out.println( "properties = " + properties );
-
             Node node = createNode( properties.get( "label" ) );
             setPropertiesExcludingLabel(properties, node);
             nodeMappings.put(properties.get("id").toString(), node.getId());
 
-            if(numberProcessed % batchSize == 0) {
+            if(numberProcessed % nodesBatchSize == 0) {
                 tx.success(); tx.close();
                 tx = db.beginTx();
             }

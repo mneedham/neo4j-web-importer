@@ -2,8 +2,6 @@ package org.neo4j.dataimport;
 
 
 import com.googlecode.totallylazy.Sequence;
-import com.sun.jersey.api.client.Client;
-import org.codehaus.jackson.JsonNode;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
@@ -17,7 +15,7 @@ import java.util.Map;
 import static com.googlecode.totallylazy.Sequences.sequence;
 import static junit.framework.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+
 import static org.neo4j.dataimport.DataCreator.*;
 import static org.neo4j.test.mocking.GraphMock.node;
 
@@ -37,7 +35,7 @@ public class Neo4jJavaAPITest {
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
         nodes.add(nodeWithLabel("2", "Andreas", " "));
 
-        new Neo4jJavaAPI(db, 1).importNodes(nodes.iterator());
+        new Neo4jJavaAPI(db, 1, 2).importNodes(nodes.iterator());
 
         String query = " START n = node(*)";
         query       += " RETURN n.name, LABELS(n), n.label";
@@ -57,7 +55,7 @@ public class Neo4jJavaAPITest {
         nodes.add(DataCreator.nodeWithoutLabel("1", "Mark"));
         nodes.add(DataCreator.nodeWithoutLabel("2", "Andreas"));
 
-        new Neo4jJavaAPI(db, 1).importNodes(nodes.iterator());
+        new Neo4jJavaAPI(db, 1, 2 ).importNodes(nodes.iterator());
 
         String query = " START n = node(*)";
         query       += " RETURN n.name, LABELS(n), n.label";
