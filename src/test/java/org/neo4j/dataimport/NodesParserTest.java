@@ -1,32 +1,35 @@
 package org.neo4j.dataimport;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.googlecode.totallylazy.Iterators;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class NodesParserTest
 {
     @Test
-    public void shouldCreateCypherQueryParametersFromFile() {
+    public void shouldCreateCypherQueryParametersFromFile() throws IOException
+    {
         NodesParser nodes = new NodesParser(new File("src/main/resources/nodes.csv"));
 
-        List<Map<String, Object>> expectedParameters = new ArrayList<Map<String, Object>>();
-        expectedParameters.add(createNode("1", "Mark"));
-        expectedParameters.add(createNode("2", "Andreas"));
+        List<Map<String, Object>> actualParameters = Iterators.toList( nodes.extractNodes() );
 
-        List<Map<String, Object>> actualParameters = nodes.extractNodes();
-
-        assertEquals(expectedParameters, actualParameters);
+        assertThat(actualParameters, hasItem(createNode( "1", "Mark" )));
+        assertThat(actualParameters, hasItem(createNode( "2", "Andreas" )));
     }
 
     @Test
@@ -34,7 +37,7 @@ public class NodesParserTest
         NodesParser nodes = new NodesParser(new File("src/main/resources/nodes_no_header.csv"));
 
         try {
-            nodes.extractNodes();
+            nodes.checkFileExists();
             fail("Should have thrown Runtime Exception");
         } catch(Exception ex) {
             assertEquals("No header line found or 'id' field missing in nodes file", ex.getMessage());

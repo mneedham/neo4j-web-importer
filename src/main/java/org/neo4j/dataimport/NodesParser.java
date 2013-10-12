@@ -8,10 +8,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVReader;
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
@@ -35,32 +38,50 @@ public class NodesParser
         this.fileType = fileType;
     }
 
-    public List<Map<String, Object>> extractNodes() {
-        List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>(  );
+    public Iterator<Map<String, Object>> extractNodes() throws IOException
+    {
 
-        try {
-            CSVReader reader = new CSVReader(new FileReader( path ), fileType.separator());
+        final CSVReader csvReader = new CSVReader( new BufferedReader( new FileReader( path ) ), fileType.separator() );
+        final String[] fields = csvReader.readNext();
 
-            String[] header = reader.readNext();
-            if (header == null || !Arrays.asList( header ).contains("id")) {
-                throw new RuntimeException("No header line found or 'id' field missing in nodes file");
+        return new Iterator<Map<String, Object>>()
+        {
+            String[] data = csvReader.readNext();
+
+            @Override
+            public boolean hasNext()
+            {
+                return data != null;
             }
 
-            String[] nextLine;
-            while ((nextLine = reader.readNext()) != null) {
-                Map<String, Object> node = new HashMap<String, Object>(  );
-                for(int i=0; i < nextLine.length; i++) {
-                    node.put(header[i], nextLine[i]);
+            @Override
+            public Map<String, Object> next()
+            {
+                final Map<String, Object> properties = new LinkedHashMap<String, Object>();
+                for ( int i = 0; i < data.length; i++ )
+                {
+                    properties.put(fields[i], data[i]);
+
                 }
-                nodes.add(node);
-            }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException( e );
-        } catch (IOException e) {
-            throw new RuntimeException( e );
-        }
 
-        return nodes;
+                try
+                {
+                    data = csvReader.readNext();
+                }
+                catch ( IOException e )
+                {
+                    data = null;
+                }
+
+                return properties;
+            }
+
+            @Override
+            public void remove()
+            {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     public String header() throws IOException
@@ -70,11 +91,33 @@ public class NodesParser
 
     public void checkFileExists()
     {
+        CSVReader csvReader = null;
         try {
-            new CSVReader(new FileReader( path ), fileType.separator());
+            csvReader = new CSVReader( new FileReader( path ), fileType.separator() );
+            String[] fields = csvReader.readNext();
+
+            if (fields == null || !Arrays.asList( fields ).contains("id"))
+                throw new RuntimeException("No header line found or 'id' field missing in nodes file");
+
             System.out.println( "Using nodes file ["  + path + "]" );
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Could not find nodes file", e );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException(e);
+        }
+        finally {
+            if(csvReader != null) {
+                try
+                {
+                    csvReader.close();
+                }
+                catch ( IOException e )
+                {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 }

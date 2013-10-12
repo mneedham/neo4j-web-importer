@@ -33,6 +33,7 @@ public class Neo4jImporter
 
     @Option(name = {"-db"}, description = "host:port of neo4j server (default: http://localhost:7474)")
     private String neo4jServerLocation = "http://localhost:7474";
+
     private Neo4jServer neo4jServer;
 
 
@@ -50,15 +51,21 @@ public class Neo4jImporter
 
     public void run()
     {
-        if(neo4jServer == null) {
-            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, neo4jServerLocation, nodeBatchSize );
-        }
+        initialiseServerForAirline();
 
         nodesParser.checkFileExists();
         relationshipsParser.checkFileExists();
 
 
-        Map<String, Long> nodeMappingIds = neo4jServer.importNodes(sequence(nodesParser.extractNodes()));
+        Map<String, Long> nodeMappingIds = null;
+        try
+        {
+            nodeMappingIds = neo4jServer.importNodes(nodesParser.extractNodes());
+        }
+        catch ( IOException e )
+        {
+            e.printStackTrace();
+        }
         try
         {
             neo4jServer.importRelationships( relationshipsParser.relationships(), nodeMappingIds );
@@ -66,6 +73,13 @@ public class Neo4jImporter
         catch ( IOException e )
         {
             e.printStackTrace();
+        }
+    }
+
+    private void initialiseServerForAirline()
+    {
+        if(neo4jServer == null) {
+            neo4jServer = new Neo4jTransactionalAPI( jerseyClient(), batchSize, neo4jServerLocation, nodeBatchSize );
         }
     }
 

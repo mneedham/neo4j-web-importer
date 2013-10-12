@@ -38,7 +38,7 @@ public class Neo4jImporterTest extends RestServerTestBase {
         nodes.add(nodeWithLabel( "4", "Michael", "Person" ));
         nodes.add(nodeWithLabel( "5", "Jim", "Person" ));
         nodes.add(nodeWithLabel( "6", "Thing", "Ting" ));
-        when(nodesParser.extractNodes()).thenReturn( nodes );
+        when(nodesParser.extractNodes()).thenReturn( nodes.iterator() );
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
@@ -68,7 +68,7 @@ public class Neo4jImporterTest extends RestServerTestBase {
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add( nodeWithLabel( "1", "Mark", "Person" ) );
         NodesParser nodesParser = mock(NodesParser.class);
-        when(nodesParser.extractNodes()).thenReturn(nodes);
+        when(nodesParser.extractNodes()).thenReturn(nodes.iterator());
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         when( relationshipsParser.relationships()).thenReturn( emptyIterator() );
@@ -97,7 +97,7 @@ public class Neo4jImporterTest extends RestServerTestBase {
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
         nodes.add(nodeWithLabel( "2", "OtherMark", "" ));
-        when(nodesParser.extractNodes()).thenReturn(nodes);
+        when(nodesParser.extractNodes()).thenReturn(nodes.iterator());
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         List<Map<String, Object>> relationshipsProperties = new ArrayList<Map<String, Object>>();
@@ -123,7 +123,7 @@ public class Neo4jImporterTest extends RestServerTestBase {
         NodesParser nodesParser = mock(NodesParser.class);
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithoutLabel("1", "Mark"));
-        when(nodesParser.extractNodes()).thenReturn(nodes);
+        when(nodesParser.extractNodes()).thenReturn(nodes.iterator());
 
         RelationshipsParser relationshipsParser = mock(RelationshipsParser.class);
         when( relationshipsParser.relationships()).thenReturn(emptyIterator());
@@ -142,7 +142,7 @@ public class Neo4jImporterTest extends RestServerTestBase {
 
     private Neo4jImporter importer( Client client, NodesParser nodesParser, RelationshipsParser relationshipsParser ) {
         return new Neo4jImporter(nodesParser, relationshipsParser,
-                new Neo4jTransactionalAPI(client, 1, hostPort, 1));
+                new Neo4jTransactionalAPI(client, 1, hostPort, 2));
     }
 
     private ObjectNode cypherQuery( String query )

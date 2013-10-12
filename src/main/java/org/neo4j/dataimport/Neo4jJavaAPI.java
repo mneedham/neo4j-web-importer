@@ -1,17 +1,11 @@
 package org.neo4j.dataimport;
 
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentNavigableMap;
 
-import com.googlecode.totallylazy.Callable1;
 import com.googlecode.totallylazy.Group;
 import com.googlecode.totallylazy.Sequence;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.JsonNodeFactory;
-import org.codehaus.jackson.node.ObjectNode;
 
 import org.neo4j.graphdb.*;
 
@@ -29,32 +23,36 @@ public class Neo4jJavaAPI implements Neo4jServer
     }
 
     @Override
-    public Map<String, Long> importNodes(Sequence<Map<String, Object>> nodes)
+    public Map<String, Long> importNodes( Iterator<Map<String, Object>> nodes)
     {
         Map<String, Long> nodeMappings = org.mapdb.DBMaker.newTempTreeMap();
 
-        Sequence<Group<String, Map<String, Object>>> nodesByLabel = nodes.groupBy(label());
+        int numberProcessed = 0;
+        Transaction tx = db.beginTx();
+        while(nodes.hasNext()) {
+            numberProcessed ++;
+            Map<String, Object> properties = nodes.next();
 
-        for (Group<String, Map<String, Object>> labelAndNodes : nodesByLabel) {
-            Transaction tx = db.beginTx();
-            for ( Map<String, Object> row : labelAndNodes )
-            {
-                Node node = createNode(labelAndNodes.key());
-                setPropertiesExcludingLabel(row, node);
-                nodeMappings.put(row.get("id").toString(), node.getId());
+            System.out.println( "properties = " + properties );
+
+            Node node = createNode( properties.get( "label" ) );
+            setPropertiesExcludingLabel(properties, node);
+            nodeMappings.put(properties.get("id").toString(), node.getId());
+
+            if(numberProcessed % batchSize == 0) {
+                tx.success(); tx.close();
+                tx = db.beginTx();
             }
-
-            tx.success();
-            tx.close();
         }
 
+        tx.success(); tx.close();
 
         return nodeMappings;
     }
 
     private Node createNode(Object label) {
         Node node;
-        if(label.equals("")) {
+        if(label == null || label.toString().trim().isEmpty()) {
             node = db.createNode();
         } else {
             node = db.createNode(DynamicLabel.label(label.toString()));
@@ -77,9 +75,7 @@ public class Neo4jJavaAPI implements Neo4jServer
         System.out.println( "Importing relationships in batches of " + batchSize );
 
         int numberProcessed = 0;
-
         Transaction tx = db.beginTx();
-
         while(relationships.hasNext()) {
             numberProcessed ++;
             Map<String, Object> properties = relationships.next();

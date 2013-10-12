@@ -35,9 +35,9 @@ public class Neo4jJavaAPITest {
     public void shouldImportNodesWithLabels() {
         List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
         nodes.add(nodeWithLabel("1", "Mark", "Person"));
-        nodes.add(nodeWithLabel("2", "Andreas", ""));
+        nodes.add(nodeWithLabel("2", "Andreas", " "));
 
-        new Neo4jJavaAPI(db, 1).importNodes(sequence(nodes));
+        new Neo4jJavaAPI(db, 1).importNodes(nodes.iterator());
 
         String query = " START n = node(*)";
         query       += " RETURN n.name, LABELS(n), n.label";
@@ -57,7 +57,7 @@ public class Neo4jJavaAPITest {
         nodes.add(DataCreator.nodeWithoutLabel("1", "Mark"));
         nodes.add(DataCreator.nodeWithoutLabel("2", "Andreas"));
 
-        new Neo4jJavaAPI(db, 1).importNodes(sequence(nodes));
+        new Neo4jJavaAPI(db, 1).importNodes(nodes.iterator());
 
         String query = " START n = node(*)";
         query       += " RETURN n.name, LABELS(n), n.label";

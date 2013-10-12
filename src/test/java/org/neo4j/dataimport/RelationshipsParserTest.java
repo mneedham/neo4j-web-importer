@@ -29,8 +29,6 @@ public class RelationshipsParserTest {
 
         expectedRelationships.add(relationship);
 
-
-
         assertEquals( expectedRelationships, Iterators.toList( relationshipsParser.relationships() ) );
     }
 }
