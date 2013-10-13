@@ -11,6 +11,7 @@ import com.googlecode.totallylazy.Iterators;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 
 public class RelationshipsParserTest {
@@ -31,4 +32,30 @@ public class RelationshipsParserTest {
 
         assertEquals( expectedRelationships, Iterators.toList( relationshipsParser.relationships() ) );
     }
+
+    @Test
+    public void shouldBlowUpIfFromToOrTypeNotProvidedInHeaderLine() {
+        RelationshipsParser relationshipsParser = new RelationshipsParser(new File("src/main/resources/nodes_no_header.csv"));
+
+        try {
+            relationshipsParser.checkFileExists();
+            fail("Should have thrown Runtime Exception");
+        } catch(Exception ex) {
+            assertEquals("No header line found or 'from', 'to' or 'type' fields missing in relationships file", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldBlowUpIfFileDoesNotExist() {
+        RelationshipsParser relationshipsParser = new RelationshipsParser(new File("src/main/resources/nofile.csv"));
+
+        try {
+            relationshipsParser.checkFileExists();
+            fail("Should have thrown Runtime Exception");
+        } catch(Exception ex) {
+            assertEquals("Could not find relationships file", ex.getMessage());
+        }
+    }
+
+
 }
