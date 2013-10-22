@@ -14,13 +14,13 @@ Its default input is two files named 'nodes.csv' and 'relationships.csv' in the 
 
 e.g.
 
-	nodes.csv	
+nodes.csv	
 	id   									name    age works_on
 	b8bd1c77-2732-4687-96b3-fa2c9f25e303    Michael 37  neo4j
 	ac80bc1f-d8e8-40f0-9b53-af731c635796    Selina  14
 	
-	
-	relationships.csv
+
+relationships.csv
 	from 									to 										type    since   counter:int
 	b8bd1c77-2732-4687-96b3-fa2c9f25e303    ac80bc1f-d8e8-40f0-9b53-af731c635796    FATHER_OF   1998-07-10  1
 
