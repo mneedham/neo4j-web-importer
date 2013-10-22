@@ -4,6 +4,14 @@ Despite the name this repository now contains code for a console based import to
 
 They both import data from node and relationship files which can be either tab or comma delimited.
 
+## Building the importer JAR
+
+You can build the importer JAR by using the following command:
+
+    mvn clean compile assembly:single
+
+That creates a JAR under target/ which is used by the console based import tool.
+
 ## Using the console based import tool
 
 Run the following command:
