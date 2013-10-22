@@ -158,6 +158,7 @@ public class Neo4jTransactionalAPI implements Neo4jServer
 
             statements.add( statement );
 
+
             if ( numberProcessed % batchSize == 0 )
             {
                 postTransaction( root, statements );
